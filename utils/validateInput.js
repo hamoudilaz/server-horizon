@@ -3,8 +3,8 @@ export function validateBuyBody(body) {
     if (typeof body.mint !== "string" || body.mint.length > 45 || body.mint.length < 42)
         return "Mint must be a string and between 43-44 characters";
 
-    if (!body.amount) return 'amount is missing';
-    if (typeof body.amount !== "number" || body.amount > 10 || body.amount < 0.0000001)
+    if (!body.buyAmount) return 'amount is missing';
+    if (typeof body.buyAmount !== "number" || body.buyAmount > 10 || body.buyAmount < 0.0000001)
         return "Amount must be a number between 0.000001 - 10";
 
     if (body.slippage == null) body.slippage = 10;
@@ -24,9 +24,8 @@ export function validateBuyBody(body) {
     if (typeof body.node !== "boolean" || body.node == null) body.node = false;
     if (body.node === true && body.jitoFee < 0.001) body.jitoFee = 0.001;
 
-    body.amount = body.amount * 1e9;
+    body.buyAmount = body.buyAmount * 1e9;
     body.slippage = body.slippage * 100;
-    body.fee = body.fee * 1e9;
     body.jitoFee = body.jitoFee * 1e9;
 
     return null;
@@ -62,8 +61,8 @@ export function validateSellBody(body) {
     if (body.node === true && body.jitoFee < 0.001) body.jitoFee = 0.001;
 
     body.slippage = body.slippage * 100;
-    body.fee = body.fee * 1e9;
     body.jitoFee = body.jitoFee * 1e9;
+
 
     return null;
 }

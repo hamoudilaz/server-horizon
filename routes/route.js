@@ -19,7 +19,8 @@ fastify.get('/api/tokens', async (request, reply) => {
 });
 
 fastify.get('/api/balance/', async (request, reply) => {
-    await refreshTokenPrices();
+    const tokens = await refreshTokenPrices();
+    if (!tokens) return reply.send({ error: "No tokens available" })
     return reply.send({ tokens });
 });
 
