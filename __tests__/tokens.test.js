@@ -1,10 +1,9 @@
+import { jest } from '@jest/globals';
+
+import '../config/mockGlobals.js';
 import request from 'supertest';
-import app from '../server.js';
 
-jest.unstable_mockModule('../helpers/constants.js', () => ({
-    connection: {}  // prevent crash on startup
-}));
-
+const app = (await import('../server.js')).default;
 
 describe('GET /api/tokens', () => {
     beforeAll(async () => {

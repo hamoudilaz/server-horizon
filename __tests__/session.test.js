@@ -1,10 +1,10 @@
-import request from 'supertest';
-import app from '../server.js';
-import { testPrivKey, testPubKey } from '../config/constant.js';
 
-jest.unstable_mockModule('../helpers/constants.js', () => ({
-    connection: {}  // prevent crash on startup
-}));
+import { testPrivKey, testPubKey } from '../config/constant.js';
+import '../config/mockGlobals.js';
+
+import request from 'supertest';
+
+const app = (await import('../server.js')).default;
 
 describe('POST /api/loadKey', () => {
     let cookie;
