@@ -1,7 +1,9 @@
 import { jest } from '@jest/globals';
 
 import { testPrivKey, validBody } from '../config/constant.js';
-import '../config/mockGlobals.js';
+import { mockGlobals } from '../config/mockGlobals.js';
+await mockGlobals();
+
 import request from 'supertest';
 
 jest.unstable_mockModule('../engine/execute.js', () => ({

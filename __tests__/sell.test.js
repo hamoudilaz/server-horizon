@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 
-import '../config/mockGlobals.js';
+import { mockGlobals } from '../config/mockGlobals.js';
+await mockGlobals();
 
 import { testPrivKey, validSellBody } from '../config/constant.js';
 import request from 'supertest';
