@@ -1,11 +1,11 @@
-import request from 'supertest';
-import app from '../server.js';
+import { jest } from '@jest/globals';
+
 import { testPrivKey } from '../config/constant.js';
 
-jest.unstable_mockModule('../helpers/constants.js', () => ({
-    connection: {}  // prevent crash on startup
-}));
+import '../config/mockGlobals.js';
+import request from 'supertest';
 
+const app = (await import('../server.js')).default;
 describe('POST /api/logout', () => {
     let cookie;
     beforeAll(async () => {
