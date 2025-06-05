@@ -1,6 +1,7 @@
 
 import { testPrivKey, testPubKey } from '../config/constant.js';
-import '../config/mockGlobals.js';
+import { mockGlobals } from '../config/mockGlobals.js';
+await mockGlobals();
 
 import request from 'supertest';
 
