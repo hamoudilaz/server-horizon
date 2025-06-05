@@ -27,37 +27,37 @@ function loadKey(key) {
         return pubKey;
     } catch (error) {
         console.error('loadKey error:', error.message);
-        return null;
+        return { error: error.message };
     }
 }
 
 
 
-async function getBalance(mint, maxRetries = 5, delayMs = 300) {
+async function getBalance(outputMint) {
     if (!wallet.publicKey) {
         console.error('Wallet is not loaded');
-        return 0;
+        return null;
     }
+    try {
+        console.log("at getbalance outputmint:", outputMint)
+        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(wallet.publicKey, {
+            mint: new PublicKey(outputMint),
+        });
 
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            const tokenAccounts = await connection.getParsedTokenAccountsByOwner(wallet.publicKey, {
-                mint: new PublicKey(mint),
-            });
+        console.log("tokenacc rpc call result:", tokenAccounts)
 
-            if (tokenAccounts.value?.length) {
-                const raw = Number(tokenAccounts.value[0].account.data.parsed.info.tokenAmount.amount);
-                if (raw > 0) return Math.floor(raw);
-            }
-        } catch (err) {
-            console.error("Balance fetch error:", err.message);
-        }
 
-        await new Promise(res => setTimeout(res, delayMs));
+        if (!tokenAccounts.value?.length || tokenAccounts.error) return 0;
+        const amountToSell = Math.floor(
+            Number(tokenAccounts.value[0].account.data.parsed.info.tokenAmount.amount)
+        );
+
+        console.log(amountToSell)
+
+        return amountToSell
+    } catch (error) {
+        return { error }
     }
-
-    return 0;
 }
-
 
 export { wallet, pubKey, getBalance, loadKey, connection };

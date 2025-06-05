@@ -7,9 +7,3 @@ export function setHeldAmount(mint, amount) {
 export function getHeldAmount(mint) {
     return held.get(mint) || 0;
 }
-
-
-
-export function resetAllHeld() {
-    held.clear();
-}
