@@ -2,7 +2,9 @@ import { jest } from '@jest/globals';
 
 import { testPrivKey } from '../config/constant.js';
 
-import '../config/mockGlobals.js';
+import { mockGlobals } from '../config/mockGlobals.js';
+await mockGlobals();
+
 import request from 'supertest';
 
 const app = (await import('../server.js')).default;
