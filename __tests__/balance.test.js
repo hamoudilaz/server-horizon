@@ -1,6 +1,10 @@
 import request from 'supertest';
 import app from '../server.js';
 
+jest.unstable_mockModule('../helpers/constants.js', () => ({
+    connection: {}  // prevent crash on startup
+}));
+
 describe('GET /api/balance/', () => {
     beforeAll(async () => {
         await app.ready();
