@@ -5,7 +5,7 @@ import { swapNoz } from '../engine/nozomi.js';
 import { start } from '../helpers/websocket.js';
 import { v4 as uuidv4 } from 'uuid';
 import { validateBuyBody, validateSellBody } from '../utils/validateInput.js';
-import { getHeldAmount, setHeldAmount } from '../utils/globals.js';
+import { getHeldAmount } from '../utils/globals.js';
 export const sessions = new Map();
 
 export const buyHandler = async (request, reply) => {
@@ -117,6 +117,8 @@ export const loadWallet = async (request, reply) => {
     try {
         const { key } = request.body;
 
+        if (!key) return reply.status(400).send({ error: "Missing key in body" })
+
         const pubKey = loadKey(key);
         if (!pubKey || pubKey.error) {
             return reply.status(400).send({ status: '400', error: pubKey.error || "bad key size" });
@@ -135,7 +137,7 @@ export const loadWallet = async (request, reply) => {
 
         await start(pubKey);
 
-        return reply.send({ pubKey });
+        return reply.status(200).send({ pubKey });
     } catch (err) {
         console.error(err);
         return reply.status(500).send({ status: '500', error: 'Server error' });

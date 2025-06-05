@@ -1,7 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { totalOwned, tokenLogo } from '../helpers/helper.js';
 import WebSocket from 'ws';
-import { setHeldAmount, getHeldAmount } from '../utils/globals.js';
+import { setHeldAmount } from '../utils/globals.js';
 import getTx from '../utils/decodeTx.js';
 
 let wss;
