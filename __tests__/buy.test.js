@@ -6,6 +6,12 @@ jest.unstable_mockModule('../engine/execute.js', () => ({
     swap: jest.fn().mockResolvedValue({ result: 'TXID123' })
 }));
 
+
+jest.unstable_mockModule('../helpers/constants.js', () => ({
+    connection: {}
+}));
+
+
 const app = (await import('../server.js')).default;
 
 

@@ -2,7 +2,9 @@ import request from 'supertest';
 import app from '../server.js';
 import { testPrivKey, testPubKey } from '../config/constant.js';
 
-
+jest.unstable_mockModule('../helpers/constants.js', () => ({
+    connection: {}  // prevent crash on startup
+}));
 
 describe('POST /api/loadKey', () => {
     beforeAll(async () => {
