@@ -5,35 +5,38 @@ import { tokens, refreshTokenPrices } from '../helpers/websocket.js';
 import { sessions, validateSession } from '../handlers/swap.js';
 
 
-const fastify = Fastify({ logger: false });
+const app = Fastify({ logger: false });
 
-fastify.post('/buy', { preHandler: validateSession }, buyHandler);
+app.post('/buy', { preHandler: validateSession }, buyHandler);
 
-fastify.post('/sell', { preHandler: validateSession }, sellHandler);
-
-
+app.post('/sell', { preHandler: validateSession }, sellHandler);
 
 
-fastify.get('/api/tokens', async (request, reply) => {
+
+
+app.get('/api/tokens', async (request, reply) => {
     reply.send(Object.values(tokens));
 });
 
-fastify.get('/api/balance/', async (request, reply) => {
-    await refreshTokenPrices();
+app.get('/api/balance/', async (request, reply) => {
+    const tokens = await refreshTokenPrices();
+    if (!tokens) return reply.send({ error: "No tokens available" })
     return reply.send({ tokens });
 });
 
-fastify.post('/api/loadKey', loadWallet);
+app.post('/api/loadKey', loadWallet);
 
 
-fastify.get('/api/session', { preHandler: validateSession }, async (req, reply) => {
-    reply.send({ pubKey: req.user.pubKey });
+app.get('/api/session', { preHandler: validateSession }, async (req, reply) => {
+    reply.status(200).send({ pubKey: req.user.pubKey });
 });
 
 
-fastify.post('/api/logout', async (request, reply) => {
+app.post('/api/logout', async (request, reply) => {
     const sessionId = request.cookies.session;
-    if (sessionId) sessions.delete(sessionId);
+    if (!sessionId) return reply.status(400).send({ error: "Invalid or missing session ID" })
+
+    sessions.delete(sessionId);
 
     reply
         .clearCookie('session', {
@@ -47,4 +50,4 @@ fastify.post('/api/logout', async (request, reply) => {
 
 
 
-export default fastify
+export default app

@@ -1,9 +1,8 @@
-import { TOKEN_PROGRAM_ID, AccountLayout } from '@solana/spl-token';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { getOwnBalance, totalOwned, tokenLogo } from '../helpers/helper.js';
-import { solMint } from '../helpers/constants.js';
+import { totalOwned, tokenLogo } from '../helpers/helper.js';
 import WebSocket from 'ws';
-
+import { setHeldAmount } from '../utils/globals.js';
+import getTx from '../utils/decodeTx.js';
 
 let wss;
 
@@ -29,70 +28,52 @@ const connection = new Connection(process.env.RPC_URL, {
     commitment: 'confirmed',
 });
 
-let otherMint;
-let ourBalance;
-let tokenBalance;
+
 let tokens = {};
 
 async function listenToWallets(wallet) {
     try {
-        connection.onProgramAccountChange(
-            TOKEN_PROGRAM_ID,
-            async (data) => {
-                const changedMint = AccountLayout.decode(data.accountInfo.data).mint.toBase58();
-                const amount = AccountLayout.decode(data.accountInfo.data).amount;
-                const balance = Number(amount);
-
-                if (changedMint === solMint) {
-
-                    ourBalance = balance.toFixed(2);
-
-                } else {
-                    otherMint = changedMint;
-                    tokenBalance = balance.toFixed(5);
-                    if (tokenBalance >= 3) {
-                        const logoData = await tokenLogo(otherMint)
-                        tokenBalance = tokenBalance / (10 ** (logoData?.decimals ?? 6));
+        connection.onLogs(new PublicKey(wallet), async (logs, context) => {
+            const signature = logs.signature
+            const tx = await getTx(signature)
+            let tokenBalance = tx.tokenBalance
+            let otherMint = tx.otherMint
 
 
-                        const totalTokenValue = await totalOwned(otherMint, tokenBalance);
-                        tokens[otherMint] = {
-                            listToken: true,
-                            tokenMint: otherMint,
-                            tokenBalance,
-                            usdValue: totalTokenValue || NaN,
-                            logoURI: logoData?.logoURI || "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png",
-                            symbol: logoData?.symbol || "No ticker",
-                        };
-                        broadcastToClients(tokens[otherMint]);
-                    } else {
-                        delete tokens[otherMint];
-                        broadcastToClients({ tokenMint: otherMint, removed: true });
-                    }
-                }
-            },
-            {
-                commitment: 'processed',
-                filters: [
-                    {
-                        dataSize: 165,
-                    },
-                    {
-                        memcmp: {
-                            offset: 32,
-                            bytes: wallet,
-                        },
-                    },
-                ],
+            setHeldAmount(otherMint, tokenBalance)
+            if (tokenBalance >= 3) {
+                const logoData = await tokenLogo(otherMint)
+
+                tokenBalance = tokenBalance / (10 ** (logoData?.decimals ?? 6));
+
+                const totalTokenValue = await totalOwned(otherMint, tokenBalance);
+
+
+                tokens[otherMint] = {
+                    listToken: true,
+                    tokenMint: otherMint,
+                    tokenBalance,
+                    usdValue: totalTokenValue || NaN,
+                    logoURI: logoData?.logoURI || "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png",
+                    symbol: logoData?.symbol || "No ticker",
+                };
+                broadcastToClients(tokens[otherMint]);
+            } else {
+
+                delete tokens[otherMint];
+                broadcastToClients({ tokenMint: otherMint, removed: true });
+
             }
-        );
+            console.log(tx)
+        }, "confirmed")
+
+
     } catch (err) {
         console.error('Error listening to wallets:', err);
     }
 }
 
 function broadcastToClients(data) {
-    console.log("BROADCASTING TO FRONTEND:", data)
     wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify(data));
@@ -111,7 +92,7 @@ export async function refreshTokenPrices() {
 
 export async function start(wallet) {
     try {
-        ourBalance = (await getOwnBalance()) * 1e6;
+        // ourBalance = (await getOwnBalance()) * 1e6;
 
         await listenToWallets(wallet);
     } catch (error) {
@@ -120,14 +101,11 @@ export async function start(wallet) {
 }
 
 
-
-export { tokens };
-
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 
 
-export async function retrieveWalletStateWithTotal(wallet_address) {
+/* export async function retrieveWalletStateWithTotal(wallet_address) {
     try {
 
         const data = await fetch(`https://lite-api.jup.ag/ultra/v1/balances/${wallet_address}`);
@@ -181,6 +159,6 @@ export async function retrieveWalletStateWithTotal(wallet_address) {
         console.error('bad wallet state:', e);
         throw e;
     }
-}
+} */
 
-export { wss };
+export { wss, tokens };

@@ -5,7 +5,7 @@ import { wallet, pubKey } from '../panel.js';
 import { request } from 'undici';
 import dotenv from 'dotenv';
 import { fetchWithTimeout, fetchWithTimeoutSwap, agent } from "../helpers/fetchTimer.js"
-import { nozomiTipWallets, jitoTipWallets, solMint } from '../helpers/constants.js';
+import { nozomiTipWallets, jitoTipWallets, solMint, calculateFee } from '../helpers/constants.js';
 import { sendJito } from '../helpers/paralell.js';
 dotenv.config();
 
@@ -53,6 +53,7 @@ export async function swapNoz(inputmint, outputMint, amount, SlippageBps, fee, j
         console.log('Requesting swap transaction...');
 
         let swapTransaction;
+        let unitLimit;
 
 
         for (let attempt = 1; attempt <= 5; attempt++) {
@@ -66,8 +67,9 @@ export async function swapNoz(inputmint, outputMint, amount, SlippageBps, fee, j
                 });
                 const swap = await swapRes.json();
                 swapTransaction = swap.swapTransaction;
+                unitLimit = swap.computeUnitLimit
 
-                if (swapTransaction) break;
+                if (swapTransaction && unitLimit) break;
                 console.warn(`⚠️ Swap retry ${attempt}: no swapTransaction`);
             } catch (err) {
                 console.warn(`⚠️ Swap retry ${attempt}: timeout or fetch error`);
@@ -80,6 +82,9 @@ export async function swapNoz(inputmint, outputMint, amount, SlippageBps, fee, j
 
         console.log('Signing...');
 
+
+        let baseFee = calculateFee(fee, unitLimit);
+
         let transaction = VersionedTransaction.deserialize(Buffer.from(swapTransaction, 'base64'));
 
 
@@ -87,7 +92,7 @@ export async function swapNoz(inputmint, outputMint, amount, SlippageBps, fee, j
 
 
         let addPrice = ComputeBudgetProgram.setComputeUnitPrice({
-            microLamports: fee
+            microLamports: baseFee
         })
 
 
@@ -110,7 +115,7 @@ export async function swapNoz(inputmint, outputMint, amount, SlippageBps, fee, j
 
         const transactionBase64 = Buffer.from(transaction.serialize()).toString('base64');
 
-        // sendJito(transactionBase64);
+
 
         const { body: sendResponse } = await request(NOZ_RPC, {
             method: 'POST',

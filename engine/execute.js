@@ -5,7 +5,7 @@ import { wallet, pubKey } from '../panel.js';
 import { request } from 'undici';
 import { fetchWithTimeout, fetchWithTimeoutSwap, agent } from "../helpers/fetchTimer.js"
 import dotenv from 'dotenv';
-import { solMint } from "../helpers/constants.js"
+import { solMint, calculateFee } from "../helpers/constants.js"
 
 
 dotenv.config();
@@ -52,6 +52,7 @@ export async function swap(inputmint, outputMint, amount, SlippageBps, fee, jito
         console.log('Requesting swap transaction...');
 
         let swapTransaction;
+        let unitLimit;
 
 
         for (let attempt = 1; attempt <= 5; attempt++) {
@@ -69,13 +70,14 @@ export async function swap(inputmint, outputMint, amount, SlippageBps, fee, jito
 
                 const swap = await swapRes.json();
                 swapTransaction = swap.swapTransaction;
+                unitLimit = swap.computeUnitLimit
                 if (swap.simulationError) {
                     throw new Error(swap.simulationError.error);
                 }
 
 
 
-                if (swapTransaction) break;
+                if (swapTransaction && unitLimit) break;
                 console.warn(`⚠️ Swap retry ${attempt}: no swapTransaction`);
             } catch (err) {
                 console.warn(`⚠️ simulationError: ${err.message}`);
@@ -89,11 +91,12 @@ export async function swap(inputmint, outputMint, amount, SlippageBps, fee, jito
 
         console.log('Signing...');
 
+        let baseFee = calculateFee(fee, unitLimit);
 
         let transaction = VersionedTransaction.deserialize(Buffer.from(swapTransaction, 'base64'));
 
         let addPrice = ComputeBudgetProgram.setComputeUnitPrice({
-            microLamports: fee
+            microLamports: baseFee
         });
 
 
