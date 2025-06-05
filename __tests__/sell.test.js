@@ -7,6 +7,10 @@ jest.unstable_mockModule('../engine/execute.js', () => ({
 }));
 
 
+jest.unstable_mockModule('../helpers/constants.js', () => ({
+    connection: {}  // prevent crash on startup
+}));
+
 jest.unstable_mockModule('../utils/globals.js', () => ({
     getHeldAmount: () => 1000000000,
     setHeldAmount: () => { }
