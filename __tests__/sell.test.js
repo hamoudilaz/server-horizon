@@ -1,24 +1,20 @@
-import request from 'supertest';
 import { jest } from '@jest/globals';
+
+import '../config/mockGlobals.js';
+
 import { testPrivKey, validSellBody } from '../config/constant.js';
+import request from 'supertest';
 
 jest.unstable_mockModule('../engine/execute.js', () => ({
     swap: jest.fn().mockResolvedValue({ result: 'SELLTX123' })
 }));
 
-
-jest.unstable_mockModule('../helpers/constants.js', () => ({
-    connection: {}  // prevent crash on startup
-}));
-
 jest.unstable_mockModule('../utils/globals.js', () => ({
     getHeldAmount: () => 1000000000,
-    setHeldAmount: () => { }
+    setHeldAmount: () => 1000000000
 }));
 
-
 const app = (await import('../server.js')).default;
-
 
 describe('POST /sell', () => {
     let cookie;
