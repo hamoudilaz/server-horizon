@@ -1,18 +1,15 @@
 import { jest } from '@jest/globals';
-import request from 'supertest';
+
 import { testPrivKey, validBody } from '../config/constant.js';
+import '../config/mockGlobals.js';
+import request from 'supertest';
 
 jest.unstable_mockModule('../engine/execute.js', () => ({
-    swap: jest.fn().mockResolvedValue({ result: 'TXID123' })
+    swap: jest.fn().mockResolvedValue({ result: 'BUYTX123' })
 }));
-
-
-jest.unstable_mockModule('../helpers/constants.js', () => ({
-    connection: {}
-}));
-
 
 const app = (await import('../server.js')).default;
+
 
 
 
@@ -108,6 +105,6 @@ describe('POST /buy', () => {
 
 
         expect(res.statusCode).toBe(200);
-        expect(res.body.message).toContain('https://solscan.io/tx/TXID123');
+        expect(res.body.message).toContain('https://solscan.io/tx/BUYTX123');
     });
 });
