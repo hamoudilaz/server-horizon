@@ -1,13 +1,9 @@
-import { jest } from '@jest/globals';
-
-import { testPrivKey } from '../config/constant.js';
-
-import { mockGlobals } from '../config/mockGlobals.js';
-await mockGlobals();
-
 import request from 'supertest';
+import { testPrivKey } from '../config/constant.js';
+import app from '../server.js';
 
-const app = (await import('../server.js')).default;
+
+
 describe('POST /api/logout', () => {
     let cookie;
     beforeAll(async () => {
@@ -25,7 +21,6 @@ describe('POST /api/logout', () => {
     });
 
 
-    console.log(cookie)
 
     it('should return error if session ID is invalid or not supplied', async () => {
         const res = await request(app.server).post('/api/logout').set('Cookie', cookie);

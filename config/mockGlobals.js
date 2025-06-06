@@ -1,10 +1,8 @@
 import { jest } from '@jest/globals';
 
 export async function mockGlobals() {
-    jest.unstable_mockModule('../config/constant.js', () => ({
-        Connection: class {
-            constructor() { }
-        },
+    jest.unstable_mockModule('../helpers/constants.js', () => ({
+        Connection: class { constructor() { } },
         calculateFee: jest.fn(() => 0),
     }));
 
