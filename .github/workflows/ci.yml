@@ -29,3 +29,5 @@ jobs:
         env:
           RPC_SHYFT: https://mock
           WSS_SHYFT: wss://mock
+          RPC_URL: https://mock
+          WSS_URL: wss://mock
