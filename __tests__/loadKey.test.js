@@ -1,13 +1,9 @@
-import { jest } from '@jest/globals';
 
 import { testPrivKey, testPubKey } from '../config/constant.js';
-
-import { mockGlobals } from '../config/mockGlobals.js';
-await mockGlobals();
-
+import app from '../server.js';
 import request from 'supertest';
 
-const app = (await import('../server.js')).default;
+
 
 describe('POST /api/loadKey', () => {
     beforeAll(async () => {

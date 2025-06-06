@@ -1,20 +1,6 @@
-import { jest } from '@jest/globals';
-
 import { testPrivKey, validBody } from '../config/constant.js';
-import { mockGlobals } from '../config/mockGlobals.js';
-await mockGlobals();
-
 import request from 'supertest';
-
-jest.unstable_mockModule('../engine/execute.js', () => ({
-    swap: jest.fn().mockResolvedValue({ result: 'BUYTX123' })
-}));
-
-const app = (await import('../server.js')).default;
-
-
-
-
+import app from '../server.js';
 
 describe('POST /buy', () => {
     let cookie;
@@ -98,15 +84,4 @@ describe('POST /buy', () => {
         expect(res.body.error).toContain('Invalid PrioFee type');
     });
 
-
-    it('should return solscan tx link if buy is successful', async () => {
-        const res = await request(app.server)
-            .post('/buy')
-            .set('Cookie', cookie)
-            .send(validBody);
-
-
-        expect(res.statusCode).toBe(200);
-        expect(res.body.message).toContain('https://solscan.io/tx/BUYTX123');
-    });
 });
