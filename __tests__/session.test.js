@@ -1,18 +1,13 @@
 
 import { testPrivKey, testPubKey } from '../config/constant.js';
-import { mockGlobals } from '../config/mockGlobals.js';
-await mockGlobals();
-
 import request from 'supertest';
-
-const app = (await import('../server.js')).default;
+import app from '../server.js';
 
 describe('POST /api/loadKey', () => {
     let cookie;
     beforeAll(async () => {
         await app.ready();
 
-        // Load wallet & store cookie
         const res = await request(app.server)
             .post('/api/loadKey')
             .set('Content-Type', 'application/json')
