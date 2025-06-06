@@ -1,5 +1,8 @@
 import request from 'supertest';
-import app from '../server.js';
+jest.mock('../helpers/constants.js');
+jest.mock('../engine/execute.js');
+
+const app = (await import('../server.js')).default;
 
 
 describe('GET /api/tokens', () => {
