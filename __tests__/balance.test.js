@@ -1,11 +1,5 @@
-import { jest } from '@jest/globals';
-
-import { mockGlobals } from '../config/mockGlobals.js';
-await mockGlobals();
-
 import request from 'supertest';
-
-const app = (await import('../server.js')).default;
+import app from '../server.js';
 
 describe('GET /api/balance/', () => {
     beforeAll(async () => {
