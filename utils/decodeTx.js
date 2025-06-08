@@ -5,8 +5,8 @@ export default async function getTx(sig) {
         commitment: "confirmed",
         maxSupportedTransactionVersion: 0
     })
+    if (!tx) return { error: "No tx" }
     const decoded = await decodeTx(tx, pubKey)
-    console.log("at gettx:", decoded)
     return decoded
 }
 
@@ -15,12 +15,7 @@ export default async function getTx(sig) {
 async function decodeTx(transaction, owner) {
     const SOL_MINT = "So11111111111111111111111111111111111111112";
 
-    if (
-        !transaction?.meta.preTokenBalances?.length ||
-        !transaction?.meta.postTokenBalances?.length ||
-        !transaction?.meta.postBalances?.length ||
-        !transaction?.meta.preBalances?.length
-    ) {
+    if (!transaction?.meta.preTokenBalances?.length || !transaction?.meta.preBalances?.length) {
         return { error: "preTokenBalances missing" };
     }
 

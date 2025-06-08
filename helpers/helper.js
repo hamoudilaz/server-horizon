@@ -122,3 +122,30 @@ export async function tokenLogo(mint) {
         throw e;
     }
 }
+
+
+
+export async function getSolPrice() {
+    try {
+        const res = await fetch(
+            'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd'
+        );
+        const pair = await res.json();
+        console.log("price at main func:", pair)
+        return pair?.solana?.usd;
+    } catch (err) {
+
+        return { error: err };
+    }
+}
+
+export async function getSolPriceFallback() {
+    try {
+        const res = await fetch('https://api.coinbase.com/v2/prices/SOL-USD/spot');
+        const pair = await res.json();
+        console.log("price at fallback func:", pair)
+        return Number(pair?.data?.amount)
+    } catch (err) {
+        return { error: err };
+    }
+}

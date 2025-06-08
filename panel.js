@@ -6,7 +6,7 @@ dotenv.config();
 
 
 
-const connection = new Connection(process.env.RPC_URL, 'processed');
+const connection = new Connection(process.env.RPC_URL, 'confirmed');
 
 let wallet = null
 
