@@ -2,7 +2,7 @@ import app from './routes/route.js';
 import cors from '@fastify/cors';
 import dotenv from 'dotenv';
 import fastifyCookie from '@fastify/cookie';
-import { setupWebSocket } from './helpers/websocket.js';
+import { setupWebSocket } from './helpers/constants.js';
 
 dotenv.config();
 

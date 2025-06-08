@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const connection = new Connection(process.env.RPC_SHYFT, {
+export const connection = new Connection(process.env.RPC_URL, {
     wsEndpoint: process.env.WSS_SHYFT,
     commitment: 'confirmed',
 });
@@ -75,3 +75,34 @@ export function calculateFee(fee, unitLimit) {
 
     return microLamportsPerUnit;
 }
+import WebSocket from 'ws';
+
+
+export let wss
+export function setupWebSocket(server) {
+    wss = new WebSocket.Server({ server });
+
+    wss.on('connection', (ws) => {
+        console.log('Frontend WebSocket client connected');
+
+        ws.on('close', () => {
+            console.log('Frontend WebSocket client disconnected');
+        });
+
+        ws.on('message', (message) => {
+            console.log('Received from frontend:', message);
+        });
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+export const DEFAULT_IMG = "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png"
