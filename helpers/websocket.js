@@ -1,33 +1,8 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { totalOwned, tokenLogo } from '../helpers/helper.js';
-import WebSocket from 'ws';
 import { setHeldAmount } from '../utils/globals.js';
 import getTx from '../utils/decodeTx.js';
-
-let wss;
-
-export function setupWebSocket(server) {
-    wss = new WebSocket.Server({ server });
-
-    wss.on('connection', (ws) => {
-        console.log('Frontend WebSocket client connected');
-
-        ws.on('close', () => {
-            console.log('Frontend WebSocket client disconnected');
-        });
-
-        ws.on('message', (message) => {
-            console.log('Received from frontend:', message);
-        });
-    });
-}
-
-
-const connection = new Connection(process.env.RPC_URL, {
-    wsEndpoint: process.env.WSS_SHYFT,
-    commitment: 'confirmed',
-});
-
+import { connection, wss, DEFAULT_IMG } from './constants.js';
 
 let tokens = {};
 
@@ -35,6 +10,7 @@ async function listenToWallets(wallet) {
     try {
         connection.onLogs(new PublicKey(wallet), async (logs, context) => {
             const signature = logs.signature
+            console.log("SIG AT LISTENER:", signature)
             const tx = await getTx(signature)
             let tokenBalance = tx.tokenBalance
             let otherMint = tx.otherMint
@@ -54,7 +30,7 @@ async function listenToWallets(wallet) {
                     tokenMint: otherMint,
                     tokenBalance,
                     usdValue: totalTokenValue || NaN,
-                    logoURI: logoData?.logoURI || "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png",
+                    logoURI: logoData?.logoURI || DEFAULT_IMG,
                     symbol: logoData?.symbol || "No ticker",
                 };
                 broadcastToClients(tokens[otherMint]);
