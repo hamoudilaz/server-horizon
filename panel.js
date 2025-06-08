@@ -34,7 +34,7 @@ function loadKey(key) {
 
 
 async function getBalance(outputMint) {
-    if (!wallet.publicKey) {
+    if (!wallet || !wallet.publicKey) {
         console.error('Wallet is not loaded');
         return null;
     }
