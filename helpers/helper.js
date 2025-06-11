@@ -42,7 +42,7 @@ export async function totalOwned(mint, mytokens) {
 
 
 
-async function getTokenPriceFallback(mint) {
+export async function getTokenPriceFallback(mint) {
 
     let tokenPrice
     const priceResponse = await fetch(`https://lite-api.jup.ag/price/v2?ids=${mint}`);
@@ -54,8 +54,6 @@ async function getTokenPriceFallback(mint) {
         tokenPrice = parseFloat(priceData.data[mint].price);
     }
     return tokenPrice
-
-
 }
 
 
@@ -127,12 +125,16 @@ export async function tokenLogo(mint) {
 
 export async function getSolPrice() {
     try {
+        let pair
         const res = await fetch(
             'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd'
         );
-        const pair = await res.json();
-        console.log("price at main func:", pair)
-        return pair?.solana?.usd;
+        pair = await res.json();
+        if (!pair.solana) {
+            pair = await getSolPriceFallback()
+        }
+        console.log("Solprice at func:", pair)
+        return pair?.solana?.usd || pair
     } catch (err) {
 
         return { error: err };
@@ -143,7 +145,6 @@ export async function getSolPriceFallback() {
     try {
         const res = await fetch('https://api.coinbase.com/v2/prices/SOL-USD/spot');
         const pair = await res.json();
-        console.log("price at fallback func:", pair)
         return Number(pair?.data?.amount)
     } catch (err) {
         return { error: err };
