@@ -66,10 +66,8 @@ export const sellHandler = async (request, reply) => {
         let { outputMint, amount, fee, jitoFee, node, slippage } = body;
         let ownedAmount
         ownedAmount = getHeldAmount(outputMint);
-        console.log('in sell handler middleware:', ownedAmount);
         if (ownedAmount <= 0) {
             ownedAmount = await getBalance(outputMint);
-            console.log("after getBalance:", ownedAmount)
             if (!ownedAmount || ownedAmount.error || isNaN(ownedAmount) || ownedAmount <= 0) {
                 return reply.status(400).send({ error: 'You dont have any tokens of this mint' });
             }
@@ -77,7 +75,6 @@ export const sellHandler = async (request, reply) => {
 
 
         const totalSellAmount = Math.floor((ownedAmount * amount) / 100);
-        console.log(totalSellAmount)
         const time = Date.now();
 
         let execute = node ? swapNoz : swap;
@@ -90,7 +87,6 @@ export const sellHandler = async (request, reply) => {
         }
 
         if (txid?.error) {
-            console.log(txid);
             return reply
                 .status(400)
                 .send({ status: '400', error: txid.message || txid.error, details: txid.details });
@@ -133,7 +129,6 @@ export const loadWallet = async (request, reply) => {
             path: '/',
         });
 
-        console.log(session);
 
         await start(pubKey);
 
@@ -146,7 +141,6 @@ export const loadWallet = async (request, reply) => {
 
 export function validateSession(request, reply, done) {
     const session = request.cookies.session;
-    console.log(session);
     const data = sessions.get(session);
 
     if (!data) {

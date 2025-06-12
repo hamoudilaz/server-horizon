@@ -79,18 +79,22 @@ async function decodeTx(transaction, owner) {
     }
     const type = inputMint === SOL_MINT ? 'buy' : 'sell';
 
-
-    if (type === "buy") {
-        return {
-            otherMint: outputMint,
-            tokenBalance: await getBalance(outputMint)
+    if (inputMint && outputMint) {
+        if (type === "buy") {
+            return {
+                otherMint: outputMint,
+                tokenBalance: await getBalance(outputMint)
+            }
+        } else {
+            return {
+                otherMint: inputMint,
+                tokenBalance: await getBalance(inputMint)
+            };
         }
     } else {
-        return {
-            otherMint: inputMint,
-            tokenBalance: await getBalance(inputMint)
-        };
+        return { error: "Missing inputmint or outputmint", valid: false }
     }
+
 }
 
 
