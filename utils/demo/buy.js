@@ -1,14 +1,8 @@
 import { validateBuyBody, validateSellBody } from "../validateInput.js";
 import { simulateBuy, simulateSell } from "./simulate.js";
-import { getDemoAmount, setDemoAmount, sessions } from "../globals.js";
+import { getDemoAmount, sessions } from "../globals.js";
 import { getSolPrice } from "../../helpers/helper.js";
-
-
-
-
 import { v4 as uuidv4 } from 'uuid';
-
-
 
 
 export const demoBuyhandler = async (request, reply) => {
@@ -17,14 +11,15 @@ export const demoBuyhandler = async (request, reply) => {
         const body = { ...request.body };
         const session = request.cookies.session;
 
-        const validate = validateBuyBody(body);
+        const validate = validateBuyBody(body, true);
         if (validate) {
             return reply.status(400).send({ status: '400', error: `Invalid request, ${validate}` });
         }
 
         let { mint, buyAmount } = body;
-        // setDemoAmount(session, mint, buyAmount);
         let txid = await simulateBuy(session, mint, buyAmount);
+
+        if (txid.error) return reply.status(400).send({ error: txid.error })
 
         const end = Date.now() - start;
 
@@ -55,7 +50,6 @@ export const demoSellHandler = async (request, reply) => {
         let { outputMint, amount } = body;
         let ownedAmount
         ownedAmount = getDemoAmount(session, outputMint);
-        console.log('in sell handler middleware:', ownedAmount);
 
         if (ownedAmount <= 0) {
             return reply.status(400).send({ error: 'You dont have any tokens of this mint' });
@@ -94,8 +88,10 @@ export const startDemo = async (request, reply) => {
         sessions.set(session, {
             initialAmount: amount,
             currentUsd: amount,
-            tokens: new Map(), // tokenMint → lamports
+            tokens: new Map(),
+            tokensDisplay: {}
         });
+
 
         reply.setCookie('session', session, {
             httpOnly: true,
@@ -136,15 +132,35 @@ export async function getSessionState(request, reply, done) {
 
 
     const solPrice = await getSolPrice()
-    data.SOL = data.initialAmount / solPrice
-    data.SOL = data.SOL.toFixed(4)
-    data.SOLPRICE = solPrice
+    const sol = (data.currentUsd / solPrice).toFixed(4);
 
 
+    reply.status(200).send({
+        valid: true,
+        amount: {
+            ...data,
+            SOL: sol,
+            SOLPRICE: solPrice.toFixed(3),
+            currentUsd: data.currentUsd.toFixed(3),
+        },
+    });
 
-    console.log("DATA AT GET SESSIONSTATE:", data)
-    reply.status(200).send({ valid: true, amount: data })
+    // broadcastToClients(data.tokensDisplay[0]);
+
 }
 
 
 
+
+
+
+export async function fetchDemoTokens(request, reply, done) {
+    const session = request.cookies.session;
+
+    const data = sessions.get(session);
+
+    reply.status(200).send(Object.values(data?.tokensDisplay));
+
+    // broadcastToClients(data.tokensDisplay[0]);
+
+}

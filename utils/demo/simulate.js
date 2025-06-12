@@ -1,42 +1,54 @@
-import { tokenLogo, totalOwned, getTokenPriceFallback } from "../../helpers/helper.js"
+import { tokenLogo, totalOwned, getTokenPriceFallback, getSolPrice } from "../../helpers/helper.js"
 import { wss } from "../../helpers/websocket.js";
-import { setDemoAmount, sessions } from "../globals.js";
+import { setDemoAmount, getDemoAmount, sessions } from "../globals.js";
+import { DEFAULT_IMG } from "../../helpers/constants.js";
 
-let tokens = {}
-export async function simulateBuy(session, outputMint, lamports) {
+export async function simulateBuy(session, outputMint, solToSpend) {
     try {
-        const logoData = await tokenLogo(outputMint);
-        const decimals = logoData?.decimals ?? 6;
-
-        const price = await getTokenPriceFallback(outputMint);
-        if (!price) throw new Error('Failed to fetch token price');
-
-        const newTokenAmount = lamports / (10 ** decimals);
-        const prevTokenAmount = tokens[outputMint]?.tokenBalance || 0;
-        const tokenAmount = prevTokenAmount + newTokenAmount;
-
-        const totalUSD = tokenAmount * price;
-
         const data = sessions.get(session);
-        if (data) {
-            data.currentUsd -= totalUSD;
-            sessions.set(session, data);
+        if (!data) throw new Error("Invalid session");
+        if (!data.tokensDisplay) data.tokensDisplay = {};
+
+        const solPrice = await getSolPrice();
+        const costInUsd = solToSpend * solPrice;
+
+
+        if (data.currentUsd < costInUsd) {
+            return { error: `Insufficient demo USD balance. You need $${costInUsd.toFixed(2)} but only have $${data.currentUsd.toFixed(2)}` };
         }
+        const logoData = await tokenLogo(outputMint);
+
+
+        const tokenPrice = await getTokenPriceFallback(outputMint);
+        if (!tokenPrice) return { error: "Failed to fetch token price" };
+
+
+
+
+        const newTokenAmount = costInUsd / tokenPrice;
+
+        data.currentUsd -= costInUsd;
+
         setDemoAmount(session, outputMint, newTokenAmount);
 
-        tokens[outputMint] = {
+
+        const totalTokenAmount = getDemoAmount(session, outputMint);
+        const totalUsdValue = totalTokenAmount * tokenPrice;
+
+        data.tokensDisplay[outputMint] = {
             simulation: true,
             tokenMint: outputMint,
-            tokenBalance: tokenAmount,
-            usdValue: totalUSD,
+            tokenBalance: totalTokenAmount,
+            usdValue: totalUsdValue,
             logoURI: logoData?.logoURI || DEFAULT_IMG,
             symbol: logoData?.symbol || 'No ticker',
         };
 
 
+        broadcastToClients(data.tokensDisplay[outputMint]);
+        sessions.set(session, data);
+        return { result: "SIMULATED_BUY_" + Date.now() };
 
-        broadcastToClients(tokens[outputMint]);
-        return { result: "3ExTVArpHV5Sybwf5jsjEMjataf6kksgLXZAqPgyaPdLsXMwKN3V3sSs8DrVVeTXNMTWf3RFzwVi3PW9dVJ9hpzf" }
 
     } catch (err) {
         console.error("Simulation Error:", err)
@@ -47,43 +59,47 @@ export async function simulateBuy(session, outputMint, lamports) {
 
 export async function simulateSell(session, mint, totalOwned, sellPercentage) {
     try {
+        const data = sessions.get(session);
+        if (!data || !data.tokensDisplay) return { error: "Invalid session or display state" }
+
+
         const logoData = await tokenLogo(mint);
+        const decimals = logoData?.decimals ?? 6;
+
+        const price = await getTokenPriceFallback(mint);
+        if (!price) throw new Error("Failed to fetch token price");
 
         const soldAmount = totalOwned * (sellPercentage / 100);
         const remaining = totalOwned - soldAmount;
+        const usdEarned = soldAmount * price;
+        data.currentUsd += usdEarned;
 
-        const decimals = logoData?.decimals ?? 6;
-        const tokenAmount = remaining / (10 ** decimals); // decode
 
+        setDemoAmount(session, mint, -soldAmount);
+        const remainingAmount = getDemoAmount(session, mint);
 
-        if (sellPercentage === 100 || remaining <= 0) {
-            delete tokens[mint];
-            setDemoAmount(session, mint, -totalOwned);
+        if (sellPercentage === 100 || remainingAmount <= 0) {
+            delete data.tokensDisplay[mint];
             broadcastToClients({ tokenMint: mint, removed: true });
         } else {
-            setDemoAmount(session, mint, -soldAmount);
-            const price = await getTokenPriceFallback(mint);
-            const totalUSD = tokenAmount * price;
+            const totalUSD = remainingAmount * price;
+            const logoData = await tokenLogo(mint);
 
-            const data = sessions.get(session);
-            if (data) {
-                data.currentUsd += totalUSD;
-                sessions.set(session, data);
-            }
-
-            tokens[mint] = {
+            data.tokensDisplay[mint] = {
                 simulation: true,
                 tokenMint: mint,
-                tokenBalance: tokenAmount,
+                tokenBalance: remainingAmount,
                 usdValue: totalUSD,
                 logoURI: logoData?.logoURI || DEFAULT_IMG,
                 symbol: logoData?.symbol || 'No ticker',
             };
 
-            broadcastToClients(tokens[mint]);
+            broadcastToClients(data.tokensDisplay[mint]);
         }
 
+        sessions.set(session, data);
         return { result: "SIMULATED_" + Date.now() };
+
     } catch (err) {
         console.error("Simulation Error:", err);
         return err;
@@ -91,7 +107,7 @@ export async function simulateSell(session, mint, totalOwned, sellPercentage) {
 }
 
 
-function broadcastToClients(data) {
+export function broadcastToClients(data) {
     wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify(data));
@@ -99,7 +115,3 @@ function broadcastToClients(data) {
     });
 }
 
-
-export const demoFetchTokens = async (request, reply) => {
-    reply.send(Object.values(tokens));
-}

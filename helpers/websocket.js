@@ -10,8 +10,8 @@ async function listenToWallets(wallet) {
     try {
         connection.onLogs(new PublicKey(wallet), async (logs, context) => {
             const signature = logs.signature
-            console.log("SIG AT LISTENER:", signature)
             const tx = await getTx(signature)
+
             let tokenBalance = tx.tokenBalance
             let otherMint = tx.otherMint
 
@@ -40,7 +40,6 @@ async function listenToWallets(wallet) {
                 broadcastToClients({ tokenMint: otherMint, removed: true });
 
             }
-            console.log(tx)
         }, "confirmed")
 
 

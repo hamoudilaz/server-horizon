@@ -15,10 +15,8 @@ export function getHeldAmount(mint) {
 export function setDemoAmount(session, mint, amount) {
     const s = sessions.get(session);
     if (!s) return;
-    console.log(s)
     const prev = s.tokens.get(mint) || 0;
     const updated = prev + amount;
-
     if (updated <= 0) {
         s.tokens.delete(mint);
     } else {

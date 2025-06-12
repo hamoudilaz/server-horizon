@@ -39,12 +39,11 @@ async function getBalance(outputMint) {
         return null;
     }
     try {
-        console.log("at getbalance outputmint:", outputMint)
+        if (!outputMint) return 0
         const tokenAccounts = await connection.getParsedTokenAccountsByOwner(wallet.publicKey, {
             mint: new PublicKey(outputMint),
         });
 
-        console.log("tokenacc rpc call result:", tokenAccounts)
 
 
         if (!tokenAccounts.value?.length || tokenAccounts.error) return 0;

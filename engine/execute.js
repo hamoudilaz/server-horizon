@@ -17,12 +17,12 @@ const JITO_RPC = process.env.JITO_RPC;
 export async function swap(inputmint, outputMint, amount, SlippageBps, fee, jitoFee) {
 
 
-    console.log('inputmint:', inputmint);
-    console.log('outputMint:', outputMint);
-    console.log('amount:', amount);
-    console.log('SlippageBps:', SlippageBps);
-    console.log('fee:', fee);
-    console.log('jitoFee:', jitoFee);
+    // console.log('inputmint:', inputmint);
+    // console.log('outputMint:', outputMint);
+    // console.log('amount:', amount);
+    // console.log('SlippageBps:', SlippageBps);
+    // console.log('fee:', fee);
+    // console.log('jitoFee:', jitoFee);
     try {
 
         if (!wallet || !pubKey) throw new Error('Failed to load wallet');
@@ -32,7 +32,6 @@ export async function swap(inputmint, outputMint, amount, SlippageBps, fee, jito
         let quote;
         for (let attempt = 1; attempt <= 5; attempt++) {
             try {
-                console.log(`📡 Requesting quote... (Attempt ${attempt})`);
 
                 const quoteRes = await fetchWithTimeout(url, 120);
                 if (quoteRes.limit) return { error: quoteRes.limit, limit: 429 }
