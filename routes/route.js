@@ -1,10 +1,9 @@
 
 import Fastify from 'fastify';
 import { buyHandler, sellHandler, loadWallet } from '../handlers/swap.js';
-import { demoBuyhandler, demoSellHandler, getSessionState, startDemo, validateDemoSession } from '../utils/demo/buy.js';
+import { demoBuyhandler, demoSellHandler, fetchDemoTokens, getSessionState, startDemo, validateDemoSession } from '../utils/demo/buy.js';
 import { validateSession } from '../handlers/swap.js';
 
-import { demoFetchTokens } from '../utils/demo/simulate.js';
 import { handleAmount, handleLogout, refreshBalance, fetchTokens } from '../handlers/handleActions.js';
 
 const app = Fastify({ logger: false });
@@ -35,18 +34,17 @@ app.get('/api/amount', { preHandler: validateSession }, handleAmount);
 
 
 // DEMO ROUTES
-app.get('/api/demo/tokens', demoFetchTokens);
+app.get('/api/demo/tokens', fetchDemoTokens); // Also protect this
 
-app.post('/demo/buy', demoBuyhandler);
+app.post('/demo/buy', demoBuyhandler); // Add preHandler
 
-app.post('/demo/sell', demoSellHandler);
+app.post('/demo/sell', demoSellHandler); // Add preHandler
 
 app.post('/api/start/demo', startDemo);
 
-app.get('/api/session/demo/state', getSessionState);
+app.get('/api/session/demo/state', getSessionState); // Also protect this
 
 app.get('/api/session/demo', { preHandler: validateDemoSession }, async (req, reply) => {
-    console.log(req.user)
     reply.send({
         valid: true,
         amount: req.user

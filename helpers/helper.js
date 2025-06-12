@@ -133,7 +133,6 @@ export async function getSolPrice() {
         if (!pair.solana) {
             pair = await getSolPriceFallback()
         }
-        console.log("Solprice at func:", pair)
         return pair?.solana?.usd || pair
     } catch (err) {
 

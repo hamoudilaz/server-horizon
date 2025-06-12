@@ -33,7 +33,6 @@ export async function swapNoz(inputmint, outputMint, amount, SlippageBps, fee, j
         let quote;
         for (let attempt = 1; attempt <= 5; attempt++) {
             try {
-                console.log(`📡 Quote (Attempt ${attempt})`);
 
                 const quoteRes = await fetchWithTimeout(url, 120);
 
@@ -134,7 +133,6 @@ export async function swapNoz(inputmint, outputMint, amount, SlippageBps, fee, j
 
         const sendResult = await sendResponse.json();
 
-        console.log(sendResult)
         if (sendResult.error) {
             console.error('Error sending transaction:', sendResult.error);
             throw new Error(sendResult.error.message);
