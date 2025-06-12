@@ -15,10 +15,6 @@ export const handleAmount = async (req, reply) => {
     const sol = data?.SOL?.uiAmount || 0;
     const wsol = data?.[solMint]?.uiAmount || 0;
     const usdValue = ((sol + wsol) * price).toFixed(2);
-    console.log('usdValue:', usdValue);
-    console.log('SOL:', sol);
-    console.log('WSOL:', wsol);
-    console.log('SOLPRICE:', price);
 
     reply.status(200).send({
         usdValue: Number(usdValue),
