@@ -10,7 +10,8 @@ app.register(fastifyCookie);
 
 app.register(cors, {
     origin: process.env.FRONTEND_URL_CORS,
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS']
 });
 
 

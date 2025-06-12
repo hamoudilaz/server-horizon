@@ -125,7 +125,8 @@ export const loadWallet = async (request, reply) => {
 
         reply.setCookie('session', session, {
             httpOnly: true,
-            sameSite: 'lax',
+            sameSite: 'none',
+            secure: true,
             path: '/',
         });
 
