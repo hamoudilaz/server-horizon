@@ -6,7 +6,10 @@ import { validateSession } from '../handlers/swap.js';
 
 import { handleAmount, handleLogout, refreshBalance, fetchTokens } from '../handlers/handleActions.js';
 
-const app = Fastify({ logger: false });
+const app = Fastify({
+    logger: false,
+    trustProxy: true
+});
 
 app.post('/buy', { preHandler: validateSession }, buyHandler);
 
