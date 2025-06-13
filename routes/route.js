@@ -5,10 +5,20 @@ import { demoBuyhandler, demoSellHandler, fetchDemoTokens, getSessionState, star
 import { validateSession } from '../handlers/swap.js';
 
 import { handleAmount, handleLogout, refreshBalance, fetchTokens } from '../handlers/handleActions.js';
+import dotenv from "dotenv"
+dotenv.config()
 
 const app = Fastify({
     logger: false,
     trustProxy: true
+});
+
+
+app.addHook('onRequest', (req, reply, done) => {
+    reply.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL_CORS);
+    reply.header('Access-Control-Allow-Credentials', 'true');
+    reply.header('Access-Control-Allow-Headers', 'Content-Type');
+    done();
 });
 
 app.post('/buy', { preHandler: validateSession }, buyHandler);
