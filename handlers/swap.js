@@ -125,11 +125,11 @@ export const loadWallet = async (request, reply) => {
 
         reply.setCookie('session', session, {
             httpOnly: true,
-            sameSite: 'none',
             secure: true,
+            sameSite: 'None',
             path: '/',
+            maxAge: 86400
         });
-
 
         await start(pubKey);
 
