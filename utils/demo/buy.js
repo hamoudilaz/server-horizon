@@ -146,7 +146,6 @@ export async function getSessionState(request, reply, done) {
         },
     });
 
-    // broadcastToClients(data.tokensDisplay[0]);
 
 }
 
@@ -156,12 +155,18 @@ export async function getSessionState(request, reply, done) {
 
 
 export async function fetchDemoTokens(request, reply, done) {
-    const session = request.cookies.session;
+    try {
+        const session = request.cookies.session;
+        if (!session) return reply.status(400).send({ error: "missing session" })
 
-    const data = sessions.get(session);
+        const data = sessions.get(session);
 
-    reply.status(200).send(Object.values(data?.tokensDisplay));
+        if (!data) return reply.status(400).send({ error: "invalid session" })
 
-    // broadcastToClients(data.tokensDisplay[0]);
+        reply.status(200).send(Object.values(data?.tokensDisplay));
+
+    } catch (error) {
+        return reply.status(500).send({ error: "something went wrong" })
+    }
 
 }
