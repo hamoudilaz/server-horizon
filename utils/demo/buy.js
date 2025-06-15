@@ -9,7 +9,7 @@ export const demoBuyhandler = async (request, reply) => {
     const start = Date.now();
     try {
         const body = { ...request.body };
-        const session = request.cookies.session;
+        const session = request.session.demo;
 
         const validate = validateBuyBody(body, true);
         if (validate) {
@@ -40,7 +40,7 @@ export const demoBuyhandler = async (request, reply) => {
 export const demoSellHandler = async (request, reply) => {
     try {
         const body = { ...request.body };
-        const session = request.cookies.session;
+        const session = request.session.demo;
 
         const validate = validateSellBody(body);
         if (validate) {
@@ -82,25 +82,17 @@ export const demoSellHandler = async (request, reply) => {
 export const startDemo = async (request, reply) => {
     try {
         const { amount } = request.body;
+        if (amount > 100000) return reply.status(400).send({ error: " Demo amount cannot be greater than 100000$" })
         if (!amount) return reply.status(400).send({ error: "Missing amount in body" });
 
-        const session = uuidv4();
-        sessions.set(session, {
+        request.session.demo = {
             initialAmount: amount,
             currentUsd: amount,
             tokens: new Map(),
             tokensDisplay: {}
-        });
+        };
 
-
-        reply.setCookie('session', session, {
-            httpOnly: true,
-            sameSite: 'none',
-            secure: true,
-            path: '/',
-        });
-
-        return reply.status(200).send({ session, amount });
+        return reply.status(200).send({ amount });
 
     } catch (error) {
         return reply.status(500).send({ error: error.message });
@@ -110,10 +102,9 @@ export const startDemo = async (request, reply) => {
 
 
 export function validateDemoSession(request, reply, done) {
-    const session = request.cookies.session;
-    const data = sessions.get(session);
+    const data = request.session.demo;
     if (!data) {
-        return reply.status(401).send({ error: 'Invalid session' });
+        return reply.status(401).send({ error: 'Invalid demo session. Please start a new demo.' });
     }
 
     request.user = data;
@@ -125,10 +116,9 @@ export function validateDemoSession(request, reply, done) {
 
 
 export async function getSessionState(request, reply, done) {
-    const session = request.cookies.session;
-    const data = sessions.get(session);
+    const data = request.session.demo;
     if (!data) {
-        return reply.status(401).send({ error: 'Invalid session' });
+        return reply.status(401).send({ error: 'Invalid demo session. Please start a new demo.' });
     }
 
 
@@ -146,22 +136,33 @@ export async function getSessionState(request, reply, done) {
         },
     });
 
-    // broadcastToClients(data.tokensDisplay[0]);
 
+}
+
+
+export const resetDemo = async (request, reply) => {
+    // Destroy only the demo part of the session
+    if (request.session.demo) {
+        request.session.demo = null; // or delete request.session.demo
+    }
+    return reply.code(200).send({ message: 'Demo session reset' });
 }
 
 
 
 
 
-
 export async function fetchDemoTokens(request, reply, done) {
-    const session = request.cookies.session;
+    try {
+        const data = request.session.demo;
+        if (!data) {
+            return reply.status(400).send({ error: "Invalid demo session" });
+        }
 
-    const data = sessions.get(session);
+        reply.status(200).send(Object.values(data?.tokensDisplay));
 
-    reply.status(200).send(Object.values(data?.tokensDisplay));
-
-    // broadcastToClients(data.tokensDisplay[0]);
+    } catch (error) {
+        return reply.status(500).send({ error: "something went wrong" })
+    }
 
 }
