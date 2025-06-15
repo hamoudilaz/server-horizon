@@ -116,20 +116,12 @@ export const loadWallet = async (request, reply) => {
         if (!key) return reply.status(400).send({ error: "Missing key in body" })
 
         const pubKey = loadKey(key);
+
         if (!pubKey || pubKey.error) {
             return reply.status(400).send({ status: '400', error: pubKey.error || "bad key size" });
         }
 
-        const session = uuidv4();
-        sessions.set(session, { pubKey });
-
-        reply.setCookie('session', session, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'None',
-            path: '/',
-            maxAge: 86400
-        });
+        request.session.user = { pubKey };
 
         await start(pubKey);
 
@@ -141,14 +133,11 @@ export const loadWallet = async (request, reply) => {
 };
 
 export function validateSession(request, reply, done) {
-    const session = request.cookies.session;
-    const data = sessions.get(session);
-
-    if (!data) {
+    if (!request.session.user) {
         reply.status(401).send({ error: 'Invalid session' });
         return;
     }
 
-    request.user = data;
+    request.user = request.session.user;
     done();
 }
