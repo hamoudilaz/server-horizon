@@ -11,18 +11,18 @@ export function getHeldAmount(mint: string) {
 }
 
 export function setDemoAmount(session: DemoSession, mint: string, amount: number) {
-  const s = session;
-  if (!s) return;
-  const prev = s.tokens.get(mint) || 0;
+  if (!session || !session.tokens) return;
+
+  const prev = session.tokens[mint] ?? 0;
   const updated = prev + amount;
   if (updated <= 0) {
-    s.tokens.delete(mint);
+    delete session.tokens[mint];
   } else {
-    s.tokens.set(mint, updated);
+    session.tokens[mint] = updated;
   }
 }
 
 export function getDemoAmount(session: DemoSession, mint: string) {
-  const s = session;
-  return s?.tokens.get(mint) || 0;
+  if (!session || !session.tokens) return 0;
+  return session.tokens[mint] ?? 0;
 }
