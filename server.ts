@@ -31,6 +31,7 @@ await app.register(rateLimit, {
 app.register(fastifyCookie);
 app.register(fastifySession, {
   secret: process.env.SESSION_SECRET!,
+  saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
