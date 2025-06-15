@@ -39,7 +39,7 @@ export interface SellBody {
 }
 
 export interface DemoSession {
-  tokens: Map<string, number>;
+  tokens: Record<string, number>;
   currentUsd: number;
   initialAmount: number;
   tokensDisplay?: {
