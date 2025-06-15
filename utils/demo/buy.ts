@@ -156,7 +156,7 @@ export const resetDemo = async (request: FastifyRequest, reply: FastifyReply) =>
   // Destroy only the demo part of the session
 
   await request.session.destroy();
-  console.log(request);
+  // console.log(request);
 
   reply
     .clearCookie('sessionId', {

@@ -1,7 +1,5 @@
 import { Connection } from '@solana/web3.js';
 import dotenv from 'dotenv';
-import { WebSocketServer } from 'ws';
-import { Server } from 'http';
 
 dotenv.config();
 
@@ -69,10 +67,49 @@ export function calculateFee(fee: number, unitLimit: number) {
   return microLamportsPerUnit;
 }
 
+import { WebSocketServer, WebSocket } from 'ws';
+import { Server, IncomingMessage } from 'http';
+import { parse } from 'cookie';
+import { unsign } from 'cookie-signature';
+import { Session } from 'fastify';
+
 export let wss: WebSocketServer;
 export function setupWebSocket(server: Server) {
-  wss = new WebSocketServer({ server });
-  wss.on('connection', (ws) => {
+  wss = new WebSocketServer({ noServer: true });
+
+  server.on('upgrade', (request: IncomingMessage, socket, head) => {
+    try {
+      if (!request.headers.cookie) {
+        throw new Error('No cookie on upgrade request');
+      }
+
+      const cookies = parse(request.headers.cookie);
+      const rawSessionId = cookies.sessionId;
+      if (!rawSessionId) {
+        throw new Error('No session ID in cookie');
+      }
+
+      const secret = process.env.SESSION_SECRET;
+      if (!secret) {
+        throw new Error('Session secret is not set');
+      }
+      const signedSessionId = 's:' + rawSessionId;
+      const sessionId = unsign(signedSessionId, secret);
+
+      if (!sessionId) {
+        throw new Error('Invalid session ID');
+      }
+
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    } catch (err) {
+      console.error('WebSocket upgrade error:', err);
+      socket.destroy();
+    }
+  });
+
+  wss.on('connection', (ws: WebSocket, request: IncomingMessage) => {
     console.log('Frontend WebSocket client connected');
 
     ws.on('close', () => {
