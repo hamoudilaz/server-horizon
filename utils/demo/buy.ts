@@ -105,7 +105,7 @@ export const startDemo = async (
     request.session.demo = {
       initialAmount: amount,
       currentUsd: amount,
-      tokens: new Map(),
+      tokens: {},
       tokensDisplay: {},
     };
 

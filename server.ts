@@ -9,7 +9,17 @@ import registerRoutes from './routes/route.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
+const COOKIE_OPTIONS = {
+  name: 'sessionId',
+  path: '/',
+  secure: process.env.NODE_ENV === 'production',
+  httpOnly: true,
+  sameSite: process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const),
+  maxAge: 86400000, // 1 day
+};
+
 const app = Fastify({ logger: false, trustProxy: true });
+
 if (!process.env.SESSION_SECRET) throw new Error('Missing SESSION_SECRET');
 
 await app.register(rateLimit, {
@@ -29,15 +39,12 @@ await app.register(rateLimit, {
 });
 
 app.register(fastifyCookie);
+
 app.register(fastifySession, {
   secret: process.env.SESSION_SECRET!,
   saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 86400000, // 1 day
-  },
+  cookie: COOKIE_OPTIONS,
+  rolling: false,
 });
 
 app.register(helmet);

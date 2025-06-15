@@ -1,8 +1,9 @@
 import { getSolPrice, getSolPriceFallback } from '../helpers/helper.js';
 import { solMint } from '../helpers/constants.js';
 import { tokens, refreshTokenPrices } from '../helpers/websocket.js';
-import { sessions } from './swap.js';
 import { FastifyReply, FastifyRequest } from 'fastify';
+import dotenv from 'dotenv';
+dotenv.config();
 
 export const handleAmount = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
@@ -32,14 +33,12 @@ export const handleLogout = async (request: FastifyRequest, reply: FastifyReply)
   const sessionId = request.cookies.session;
   if (!sessionId) return reply.status(400).send({ error: 'Invalid or missing session ID' });
 
-  sessions.delete(sessionId);
-
   reply
-    .clearCookie('session', {
+    .clearCookie('sessionId', {
       path: '/',
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const),
     })
     .code(200)
     .send({ message: 'Logged out' });
