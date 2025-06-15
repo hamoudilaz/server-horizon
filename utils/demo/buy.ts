@@ -154,10 +154,19 @@ export async function getSessionState(request: FastifyRequest, reply: FastifyRep
 
 export const resetDemo = async (request: FastifyRequest, reply: FastifyReply) => {
   // Destroy only the demo part of the session
-  if (request.session.demo) {
-    delete request.session.demo;
-  }
-  return reply.code(200).send({ message: 'Demo session reset' });
+
+  await request.session.destroy();
+  console.log(request);
+
+  reply
+    .clearCookie('sessionId', {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const),
+    })
+    .code(200)
+    .send({ message: 'Demo session reset and user logged out' });
 };
 
 export async function fetchDemoTokens(request: FastifyRequest, reply: FastifyReply) {
