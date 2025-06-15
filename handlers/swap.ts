@@ -13,7 +13,6 @@ import {
   validBuyBody,
   validSellBody,
 } from '../types/interfaces.js';
-export const sessions = new Map();
 
 export const buyHandler = async (
   request: FastifyRequest<{ Body: BuyBody }>,
