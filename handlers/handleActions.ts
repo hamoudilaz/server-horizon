@@ -30,9 +30,7 @@ export const handleAmount = async (req: FastifyRequest, reply: FastifyReply) => 
 };
 
 export const handleLogout = async (request: FastifyRequest, reply: FastifyReply) => {
-  const sessionId = request.cookies.session;
-  if (!sessionId) return reply.status(400).send({ error: 'Invalid or missing session ID' });
-
+  await request.session.destroy();
   reply
     .clearCookie('sessionId', {
       path: '/',
