@@ -13,7 +13,7 @@ export function getHeldAmount(mint) {
 
 
 export function setDemoAmount(session, mint, amount) {
-    const s = sessions.get(session);
+    const s = session
     if (!s) return;
     const prev = s.tokens.get(mint) || 0;
     const updated = prev + amount;
@@ -26,6 +26,6 @@ export function setDemoAmount(session, mint, amount) {
 
 
 export function getDemoAmount(session, mint) {
-    const s = sessions.get(session);
+    const s = session
     return s?.tokens.get(mint) || 0;
 }
