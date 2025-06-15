@@ -4,6 +4,8 @@ import { setDemoAmount, getDemoAmount, sessions } from '../globals.js';
 import { DEFAULT_IMG } from '../../helpers/constants.js';
 import { SimulatedToken, BroadcastMessage, DemoSession } from '../../types/interfaces.js';
 
+import { WebSocket } from 'ws'; // <--- ADD THIS LINE
+
 export async function simulateBuy(session: DemoSession, outputMint: string, solToSpend: number) {
   try {
     const data = session;
