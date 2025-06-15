@@ -5,7 +5,7 @@ import { DEFAULT_IMG } from "../../helpers/constants.js";
 
 export async function simulateBuy(session, outputMint, solToSpend) {
     try {
-        const data = sessions.get(session);
+        const data = session
         if (!data) throw new Error("Invalid session");
         if (!data.tokensDisplay) data.tokensDisplay = {};
 
@@ -46,7 +46,7 @@ export async function simulateBuy(session, outputMint, solToSpend) {
 
 
         broadcastToClients(data.tokensDisplay[outputMint]);
-        sessions.set(session, data);
+        // sessions.set(session, data);
         return { result: "SIMULATED_BUY_" + Date.now() };
 
 
@@ -59,7 +59,7 @@ export async function simulateBuy(session, outputMint, solToSpend) {
 
 export async function simulateSell(session, mint, totalOwned, sellPercentage) {
     try {
-        const data = sessions.get(session);
+        const data = session
         if (!data || !data.tokensDisplay) return { error: "Invalid session or display state" }
 
 
@@ -97,7 +97,7 @@ export async function simulateSell(session, mint, totalOwned, sellPercentage) {
             broadcastToClients(data.tokensDisplay[mint]);
         }
 
-        sessions.set(session, data);
+        // sessions.set(session, data);
         return { result: "SIMULATED_" + Date.now() };
 
     } catch (err) {

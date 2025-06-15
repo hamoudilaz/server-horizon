@@ -34,10 +34,12 @@ export const handleLogout = async (request, reply) => {
         .clearCookie('session', {
             path: '/',
             httpOnly: true,
-            sameSite: 'lax',
+            secure: true,
+            sameSite: 'none',
         })
         .code(200)
         .send({ message: 'Logged out' });
+
 }
 
 export const refreshBalance = async (request, reply) => {
