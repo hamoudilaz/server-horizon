@@ -1,6 +1,6 @@
 import { tokenLogo, totalOwned, getTokenPriceFallback, getSolPrice } from '../../helpers/helper.js';
 import { wss } from '../../helpers/constants.js';
-import { setDemoAmount, getDemoAmount, sessions } from '../globals.js';
+import { setDemoAmount, getDemoAmount } from '../globals.js';
 import { DEFAULT_IMG } from '../../helpers/constants.js';
 import { SimulatedToken, BroadcastMessage, DemoSession } from '../../types/interfaces.js';
 
@@ -24,10 +24,13 @@ export async function simulateBuy(session: DemoSession, outputMint: string, solT
     }
     const logoData = await tokenLogo(outputMint);
 
-    const tokenPrice = await getTokenPriceFallback(outputMint);
-    if (!tokenPrice) return { error: 'Failed to fetch token price' };
+    let tokenPrice = await getTokenPriceFallback(outputMint);
+    console.log(tokenPrice);
+    if (typeof tokenPrice === null || tokenPrice === undefined) {
+      return { error: 'Failed to fetch token price' };
+    }
 
-    const newTokenAmount = costInUsd / tokenPrice;
+    let newTokenAmount = costInUsd / tokenPrice;
 
     data.currentUsd -= costInUsd;
 
@@ -65,14 +68,16 @@ export async function simulateSell(
     const data = session;
     if (!data || !data.tokensDisplay) return { error: 'Invalid session or display state' };
 
-    const logoData = await tokenLogo(mint);
-    const decimals = logoData?.decimals ?? 6;
-
     const price = await getTokenPriceFallback(mint);
-    if (!price) throw new Error('Failed to fetch token price');
-
+    if (typeof price === null || price === undefined) {
+      return { error: 'Failed to fetch token price' };
+    }
     const soldAmount = totalOwned * (sellPercentage / 100);
-    const remaining = totalOwned - soldAmount;
+    if (!isFinite(soldAmount)) {
+      delete data.tokensDisplay[mint];
+      broadcastToClients({ tokenMint: mint, removed: true });
+      return;
+    }
     const usdEarned = soldAmount * price;
     data.currentUsd += usdEarned;
 

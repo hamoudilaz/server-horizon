@@ -1,6 +1,6 @@
 import { validateBuyBody, validateSellBody } from '../validateInput.js';
 import { simulateBuy, simulateSell } from './simulate.js';
-import { getDemoAmount, sessions } from '../globals.js';
+import { getDemoAmount } from '../globals.js';
 import { getSolPrice } from '../../helpers/helper.js';
 import { FastifyRequest, FastifyReply, HookHandlerDoneFunction } from 'fastify';
 import { BuyBody, SellBody, DemoSession } from '../../types/interfaces.js';
@@ -66,6 +66,7 @@ export const demoSellHandler = async (
     let ownedAmount;
 
     ownedAmount = getDemoAmount(session, outputMint);
+    console.log('ownedamount:', ownedAmount);
 
     if (ownedAmount <= 0) {
       return reply.status(400).send({ error: 'You dont have any tokens of this mint' });
@@ -139,15 +140,22 @@ export async function getSessionState(request: FastifyRequest, reply: FastifyRep
   }
 
   const solPrice = await getSolPrice();
-  const sol = (data.currentUsd / solPrice).toFixed(4);
+  let sol = Number((data.currentUsd / solPrice).toFixed(4));
 
+  if (sol > 1) {
+    sol = Number(sol.toFixed(1));
+  }
+  if (data.currentUsd > 100) {
+    data.currentUsd = Number(data.currentUsd.toFixed(0));
+  }
+  await new Promise((resolve) => setTimeout(resolve, 3000));
   reply.status(200).send({
     valid: true,
     amount: {
       ...data,
       SOL: sol,
-      SOLPRICE: solPrice.toFixed(3),
-      currentUsd: data.currentUsd.toFixed(3),
+      SOLPRICE: solPrice.toFixed(0),
+      currentUsd: data.currentUsd,
     },
   });
 }

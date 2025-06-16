@@ -161,3 +161,7 @@ export interface SwapResponse {
   swapTransaction: string; // This is a base64 string
   computeUnitLimit: number; // This is a number
 }
+
+export interface Key {
+  key: string;
+}
