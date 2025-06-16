@@ -1,14 +1,8 @@
-const held = new Map();
-import { DemoSession } from '../types/interfaces.js';
-export const sessions = new Map();
+import { BroadcastedToken, DemoSession } from '../types/interfaces.js';
+import { WebSocket } from 'ws';
+export const userConnections = new Map<string, WebSocket>();
 
-export function setHeldAmount(mint: string, amount: number) {
-  held.set(mint, amount);
-}
-
-export function getHeldAmount(mint: string) {
-  return held.get(mint) || 0;
-}
+export const userTrackedTokens = new Map<string, { [mint: string]: BroadcastedToken }>();
 
 export function setDemoAmount(session: DemoSession, mint: string, amount: number) {
   if (!session || !session.tokens) return;

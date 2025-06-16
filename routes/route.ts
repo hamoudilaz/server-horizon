@@ -13,7 +13,7 @@ import { validateSession } from '../handlers/swap.js';
 import {
   handleAmount,
   handleLogout,
-  refreshBalance,
+  getPortfolio,
   fetchTokens,
 } from '../handlers/handleActions.js';
 import { FastifyInstance } from 'fastify';
@@ -24,11 +24,12 @@ export default function registerRoutes(app: FastifyInstance) {
 
   app.post<{ Body: SellBody }>('/api/sell', { preHandler: validateSession }, sellHandler);
 
-  app.get('/api/balance/', { preHandler: validateSession }, refreshBalance);
+  app.get('/api/balance', { preHandler: validateSession }, getPortfolio);
 
   app.post('/api/loadKey', loadWallet);
 
   app.get('/api/session', { preHandler: validateSession }, async (req, reply) => {
+    // console.log('On last handler /session:', req.session);
     if (!req.session.user) {
       return reply.status(401).send({ error: 'Not authenticated' });
     }
@@ -56,7 +57,7 @@ export default function registerRoutes(app: FastifyInstance) {
 
   app.post('/api/demo/reset', resetDemo);
 
-  app.get('/api/session/demo/state', getSessionState); // Also protect this
+  app.get('/api/session/demo/state', { preHandler: validateDemoSession }, getSessionState);
 
   app.get('/api/session/demo', { preHandler: validateDemoSession }, async (req, reply) => {
     reply.send({

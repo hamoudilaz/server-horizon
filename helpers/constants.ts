@@ -69,18 +69,34 @@ export function calculateFee(fee: number, unitLimit: number) {
   return microLamportsPerUnit;
 }
 
+import { WebSocket } from 'ws'; // Make sure to import WebSocket type
+import { userConnections } from '../utils/globals.js';
+
 export let wss: WebSocketServer;
 export function setupWebSocket(server: Server) {
   wss = new WebSocketServer({ server });
-  wss.on('connection', (ws) => {
+  wss.on('connection', (ws: WebSocket & { pubKey?: string }) => {
     console.log('Frontend WebSocket client connected');
 
     ws.on('close', () => {
       console.log('Frontend WebSocket client disconnected');
+      if (ws.pubKey) {
+        userConnections.delete(ws.pubKey); // Clean up on disconnect
+      }
     });
 
-    ws.on('message', (message) => {
-      console.log('Received from frontend:', message);
+    ws.on('message', (message: string) => {
+      try {
+        const data = JSON.parse(message);
+        // Expect a message like { type: 'auth', pubKey: '...' } from the client
+        if (data.type === 'auth' && data.pubKey) {
+          ws.pubKey = data.pubKey;
+          userConnections.set(data.pubKey, ws);
+          console.log(`WebSocket associated with pubKey: ${data.pubKey}`);
+        }
+      } catch (e) {
+        console.log('Received non-JSON message:', message);
+      }
     });
   });
 }

@@ -16,7 +16,7 @@ const COOKIE_OPTIONS = {
   secure: process.env.NODE_ENV === 'production',
   httpOnly: true,
   sameSite: process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const),
-  maxAge: 86400000, // 1 day
+  maxAge: 86400000,
 };
 
 const app = Fastify({ logger: false, trustProxy: true });
@@ -24,7 +24,7 @@ const app = Fastify({ logger: false, trustProxy: true });
 if (!process.env.SESSION_SECRET) throw new Error('Missing SESSION_SECRET');
 
 await app.register(rateLimit, {
-  max: 15,
+  max: 1533,
   timeWindow: 10000,
   ban: 20,
   keyGenerator: (req) => req.ip,
