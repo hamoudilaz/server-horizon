@@ -1,47 +1,54 @@
-import { Connection, PublicKey } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import { totalOwned, tokenLogo } from './helper.js';
-import { setHeldAmount } from '../utils/globals.js';
 import getTx from '../utils/decodeTx.js';
-import { connection, wss, DEFAULT_IMG } from './constants.js';
-import { BroadcastedToken } from '../types/interfaces.js';
+import { connection, DEFAULT_IMG } from './constants.js';
+import { userConnections, userTrackedTokens } from '../utils/globals.js';
+import { WebSocket } from 'ws';
 
-let tokens: { [mint: string]: BroadcastedToken } = {};
+export function sendToUser(pubKey: string, data: any) {
+  const connection = userConnections.get(pubKey);
+  if (connection && connection.readyState === WebSocket.OPEN) {
+    connection.send(JSON.stringify(data));
+  }
+}
 
 async function listenToWallets(wallet: string) {
   try {
     connection.onLogs(
       new PublicKey(wallet),
       async (logs, context) => {
+        console.log(logs, context);
         const signature = logs.signature;
         const res = await getTx(signature);
         if ('error' in res) return; // skip errored tx
-        const tx = res;
-        let tokenBalance = tx.tokenBalance;
+        const { otherMint, tokenBalance } = res;
 
-        console.log('Res at listneer:', res);
-        let otherMint = tx.otherMint;
+        const userTokens = userTrackedTokens.get(wallet);
+        if (!userTokens) return;
+        let broadcastData;
 
-        setHeldAmount(otherMint, tokenBalance);
         if (tokenBalance >= 3) {
           const logoData = await tokenLogo(otherMint);
 
-          tokenBalance = tokenBalance / 10 ** (logoData?.decimals ?? 6);
+          const uiTokenBalance = tokenBalance / 10 ** (logoData?.decimals ?? 6);
 
-          const totalTokenValue = await totalOwned(otherMint, tokenBalance);
+          const totalTokenValue = await totalOwned(otherMint, uiTokenBalance);
 
-          tokens[otherMint] = {
+          broadcastData = {
             listToken: true,
             tokenMint: otherMint,
-            tokenBalance,
+            tokenBalance: uiTokenBalance,
             usdValue: Number(totalTokenValue) || NaN,
             logoURI: logoData?.logoURI || DEFAULT_IMG,
             symbol: logoData?.symbol || 'No ticker',
           };
-          broadcastToClients(tokens[otherMint]);
+
+          userTokens[otherMint] = broadcastData;
         } else {
-          delete tokens[otherMint];
-          broadcastToClients({ tokenMint: otherMint, removed: true });
+          broadcastData = { tokenMint: otherMint, removed: true };
+          delete userTokens[otherMint];
         }
+        sendToUser(wallet, broadcastData);
       },
       'confirmed'
     );
@@ -50,22 +57,6 @@ async function listenToWallets(wallet: string) {
   }
 }
 
-export function broadcastToClients(data: BroadcastedToken | { tokenMint: string; removed: true }) {
-  wss.clients.forEach((client: any) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(data));
-    }
-  });
-}
-
-export async function refreshTokenPrices() {
-  for (const mint in tokens) {
-    const updatedValue = await totalOwned(mint, tokens[mint].tokenBalance);
-    tokens[mint].usdValue = Number(updatedValue);
-    broadcastToClients(tokens[mint]);
-  }
-  return tokens;
-}
 // setInterval(refreshTokenPrices, 30000);
 
 export async function start(wallet: string) {
@@ -135,5 +126,3 @@ export async function start(wallet: string) {
         throw e;
     }
 } */
-
-export { tokens };

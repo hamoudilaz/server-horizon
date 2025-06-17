@@ -22,7 +22,6 @@ export async function fetchWithTimeout(url: string, ms: number) {
       dispatcher: agent,
       signal: controller.signal,
     });
-    console.log(statusCode);
 
     if (statusCode === 429) return { limit: 'Rate limit exeeded' };
     return quoteRes;

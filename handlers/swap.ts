@@ -5,14 +5,15 @@ import { swapNoz } from '../engine/nozomi.js';
 import { start } from '../helpers/websocket.js';
 import { FastifyRequest, FastifyReply, HookHandlerDoneFunction } from 'fastify';
 import { validateBuyBody, validateSellBody } from '../utils/validateInput.js';
-import { getHeldAmount } from '../utils/globals.js';
 import {
   BuyBody,
   ExecuteResult,
   SellBody,
   validBuyBody,
   validSellBody,
+  Key,
 } from '../types/interfaces.js';
+import { userTrackedTokens } from '../utils/globals.js';
 
 export const buyHandler = async (
   request: FastifyRequest<{ Body: BuyBody }>,
@@ -46,7 +47,6 @@ export const buyHandler = async (
     }
 
     if (txid?.error) {
-      console.log('buyHandler TX:', txid);
       return reply
         .status(400)
         .send({ status: '400', error: txid.message || txid.error, details: txid.details });
@@ -81,15 +81,10 @@ export const sellHandler = async (
     }
 
     let { outputMint, amount, fee, jitoFee, node, slippage } = body as validSellBody;
-    let ownedAmount;
-    ownedAmount = getHeldAmount(outputMint);
-    if (ownedAmount <= 0) {
-      ownedAmount = await getBalance(outputMint);
-      if (typeof ownedAmount !== 'number' || isNaN(ownedAmount) || ownedAmount <= 0) {
-        return reply.status(400).send({ error: 'You dont have any tokens of this mint' });
-      }
+    let ownedAmount = await getBalance(outputMint);
+    if (typeof ownedAmount !== 'number' || isNaN(ownedAmount) || ownedAmount <= 0) {
+      return reply.status(400).send({ error: 'You dont have any tokens of this mint' });
     }
-
     const totalSellAmount = Math.floor((ownedAmount * amount) / 100);
     const time = Date.now();
 
@@ -130,10 +125,6 @@ export const sellHandler = async (
   }
 };
 
-interface Key {
-  key: string;
-}
-
 export const loadWallet = async (request: FastifyRequest<{ Body: Key }>, reply: FastifyReply) => {
   try {
     const { key } = request.body;
@@ -147,7 +138,7 @@ export const loadWallet = async (request: FastifyRequest<{ Body: Key }>, reply: 
     }
 
     request.session.user = { pubKey };
-
+    userTrackedTokens.set(pubKey, {});
     await start(pubKey);
 
     return reply.status(200).send({ pubKey });
@@ -162,6 +153,7 @@ export function validateSession(
   reply: FastifyReply,
   done: HookHandlerDoneFunction
 ) {
+  console.log(request.session.user);
   if (!request.session.user) {
     reply.status(401).send({ error: 'Invalid session' });
     return;
