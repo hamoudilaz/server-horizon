@@ -6,7 +6,7 @@ import { Server } from 'http';
 dotenv.config();
 
 export const connection = new Connection(process.env.RPC_URL!, {
-  wsEndpoint: process.env.WSS_SHYFT,
+  wsEndpoint: process.env.WSS_URL,
   commitment: 'confirmed',
 });
 
