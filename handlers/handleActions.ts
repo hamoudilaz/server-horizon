@@ -54,7 +54,6 @@ export const getPortfolio = async (request: FastifyRequest, reply: FastifyReply)
     }
 
     const solPrice = await getSolPrice();
-    // Fetch all token accounts for the user's public key
     const balances = await (
       await fetch(`https://lite-api.jup.ag/ultra/v1/balances/${pubkey}`)
     ).json();
@@ -86,6 +85,8 @@ export const getPortfolio = async (request: FastifyRequest, reply: FastifyReply)
         }
       }
     }
+
+    console.log(portfolio);
 
     reply.status(200).send({ portfolio, solPrice: solPrice });
   } catch (err: any) {

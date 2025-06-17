@@ -1,8 +1,7 @@
-import { Connection, PublicKey } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import { totalOwned, tokenLogo } from './helper.js';
 import getTx from '../utils/decodeTx.js';
-import { connection, wss, DEFAULT_IMG } from './constants.js';
-import { BroadcastedToken } from '../types/interfaces.js';
+import { connection, DEFAULT_IMG } from './constants.js';
 import { userConnections, userTrackedTokens } from '../utils/globals.js';
 import { WebSocket } from 'ws';
 
@@ -18,6 +17,7 @@ async function listenToWallets(wallet: string) {
     connection.onLogs(
       new PublicKey(wallet),
       async (logs, context) => {
+        console.log(logs, context);
         const signature = logs.signature;
         const res = await getTx(signature);
         if ('error' in res) return; // skip errored tx
