@@ -11,11 +11,12 @@ dotenv.config();
 
 const COOKIE_OPTIONS = {
   name: 'sessionId',
+  domain: process.env.NODE_ENV === 'production' ? '.horizonlabs.se' : undefined,
   path: '/',
   secure: process.env.NODE_ENV === 'production',
   httpOnly: true,
   sameSite: process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const),
-  maxAge: 86400000, // 1 day
+  maxAge: 86400000,
 };
 
 const app = Fastify({ logger: false, trustProxy: true });
@@ -23,7 +24,7 @@ const app = Fastify({ logger: false, trustProxy: true });
 if (!process.env.SESSION_SECRET) throw new Error('Missing SESSION_SECRET');
 
 await app.register(rateLimit, {
-  max: 10,
+  max: 1533,
   timeWindow: 10000,
   ban: 20,
   keyGenerator: (req) => req.ip,
@@ -62,8 +63,7 @@ const start = async () => {
   try {
     await app.listen({ port, host: '0.0.0.0' });
 
-    const httpServer = app.server;
-    setupWebSocket(httpServer);
+    setupWebSocket(app.server);
 
     console.log(`🚀 HTTP + WebSocket running on port ${port}`);
   } catch (err) {

@@ -1,8 +1,8 @@
-import { getSolPrice, getSolPriceFallback } from '../helpers/helper.js';
+import { getSolPrice, getSolPriceFallback, tokenLogo, totalOwned } from '../helpers/helper.js';
 import { solMint } from '../helpers/constants.js';
-import { tokens, refreshTokenPrices } from '../helpers/websocket.js';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import dotenv from 'dotenv';
+import { userTrackedTokens } from '../utils/globals.js';
 dotenv.config();
 
 export const handleAmount = async (req: FastifyRequest, reply: FastifyReply) => {
@@ -30,6 +30,10 @@ export const handleAmount = async (req: FastifyRequest, reply: FastifyReply) => 
 };
 
 export const handleLogout = async (request: FastifyRequest, reply: FastifyReply) => {
+  const pubkey = request.session.user?.pubKey;
+  if (pubkey) {
+    userTrackedTokens.delete(pubkey);
+  }
   await request.session.destroy();
   reply
     .clearCookie('sessionId', {
@@ -42,12 +46,69 @@ export const handleLogout = async (request: FastifyRequest, reply: FastifyReply)
     .send({ message: 'Logged out' });
 };
 
-export const refreshBalance = async (request: FastifyRequest, reply: FastifyReply) => {
-  const tokens = await refreshTokenPrices();
-  if (!tokens) return reply.send({ error: 'No tokens available' });
-  return reply.send({ tokens });
+export const getPortfolio = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const pubkey = request?.session?.user?.pubKey;
+    if (!pubkey) {
+      return reply.status(401).send({ error: 'Not authenticated' });
+    }
+
+    const solPrice = await getSolPrice();
+    const balances = await (
+      await fetch(`https://lite-api.jup.ag/ultra/v1/balances/${pubkey}`)
+    ).json();
+
+    const portfolio = [];
+
+    for (const mint in balances) {
+      // Skip the native SOL balance provided by the Jupiter API.
+      // wSOL (solMint) will be handled like any other SPL token.
+      if (mint === solMint) continue;
+
+      const balanceInfo = balances[mint];
+      const tokenBalance = balanceInfo.uiAmount;
+
+      if (tokenBalance > 0) {
+        const usdValueString = await totalOwned(mint, tokenBalance);
+        const numericUsdValue = parseFloat(usdValueString);
+
+        // Only include tokens with a value greater than $1
+        if (numericUsdValue > 1) {
+          const logoData = await tokenLogo(mint);
+          portfolio.push({
+            tokenMint: mint,
+            tokenBalance: tokenBalance,
+            usdValue: numericUsdValue.toFixed(4),
+            logoURI: logoData?.logoURI,
+            symbol: logoData?.symbol,
+          });
+        }
+      }
+    }
+
+    console.log(portfolio);
+
+    reply.status(200).send({ portfolio, solPrice: solPrice });
+  } catch (err: any) {
+    reply.status(500).send({ error: 'Internal server error', details: err?.message });
+  }
 };
 
 export const fetchTokens = async (request: FastifyRequest, reply: FastifyReply) => {
-  reply.send(Object.values(tokens));
+  try {
+    const pubkey = request.session.user?.pubKey;
+    if (!pubkey) {
+      return reply.status(401).send({ error: 'Not authenticated' });
+    }
+
+    const trackedTokens = userTrackedTokens.get(pubkey);
+
+    if (!trackedTokens) {
+      return reply.status(200).send([]);
+    }
+
+    reply.status(200).send(Object.values(trackedTokens));
+  } catch (err: any) {
+    reply.status(500).send({ error: 'Internal server error', details: err?.message });
+  }
 };

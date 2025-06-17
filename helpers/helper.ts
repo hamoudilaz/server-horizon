@@ -42,12 +42,12 @@ export async function getTokenPriceFallback(mint: string): Promise<number> {
   let tokenPrice: number;
   const priceResponse = await fetch(`https://lite-api.jup.ag/price/v2?ids=${mint}`);
   const priceData: JupPriceResponse = await priceResponse.json();
-
   if (!priceData?.data[mint]?.price) {
     tokenPrice = await getGeckoTerminalPrice(mint);
   } else {
     tokenPrice = priceData.data[mint].price;
   }
+  console.log('Tokenprice at func:', tokenPrice);
   return tokenPrice;
 }
 
@@ -128,7 +128,7 @@ export async function getSolPrice(): Promise<number> {
       return await getSolPriceFallback();
     }
 
-    return pair.solana.usd;
+    return Number(pair.solana.usd);
   } catch (err) {
     return 0;
   }
