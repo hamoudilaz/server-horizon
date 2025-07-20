@@ -36,9 +36,20 @@ export async function simulateBuy(session: DemoSession, outputMint: string, solT
 
     setDemoAmount(session, outputMint, newTokenAmount);
 
-    const totalTokenAmount = getDemoAmount(session, outputMint);
-    const totalUsdValue = totalTokenAmount * tokenPrice;
+    let totalTokenAmount = getDemoAmount(session, outputMint);
 
+    if (totalTokenAmount > 100) {
+      totalTokenAmount = Number(totalTokenAmount.toFixed(0));
+    } else {
+      totalTokenAmount = Number(totalTokenAmount.toFixed(3));
+    }
+
+    let totalUsdValue = totalTokenAmount * tokenPrice;
+    if (totalUsdValue > 1) {
+      totalUsdValue = Number(totalUsdValue.toFixed(1));
+    } else {
+      totalUsdValue = Number(totalUsdValue.toFixed(3));
+    }
     const simulated: SimulatedToken = {
       simulation: true,
       tokenMint: outputMint,
@@ -82,13 +93,24 @@ export async function simulateSell(
     data.currentUsd += usdEarned;
 
     setDemoAmount(session, mint, -soldAmount);
-    const remainingAmount = getDemoAmount(session, mint);
+    let remainingAmount = getDemoAmount(session, mint);
+    if (remainingAmount > 100) {
+      remainingAmount = Number(remainingAmount.toFixed(0));
+    } else {
+      remainingAmount = Number(remainingAmount.toFixed(3));
+    }
 
     if (sellPercentage === 100 || remainingAmount <= 0) {
       delete data.tokensDisplay[mint];
       broadcastToClients({ tokenMint: mint, removed: true });
     } else {
-      const totalUSD = remainingAmount * price;
+      let totalUSD = remainingAmount * price;
+      if (totalUSD > 1) {
+        totalUSD = Number(totalUSD.toFixed(1));
+      } else {
+        totalUSD = Number(totalUSD.toFixed(3));
+      }
+
       const logoData = await tokenLogo(mint);
 
       const simulated: SimulatedToken = {

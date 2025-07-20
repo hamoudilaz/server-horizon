@@ -26,6 +26,7 @@ export async function swap(
   // console.log('SlippageBps:', SlippageBps);
   // console.log('fee:', fee);
   // console.log('jitoFee:', jitoFee);
+
   try {
     if (!wallet || !pubKey) throw new Error('Failed to load wallet');
 
