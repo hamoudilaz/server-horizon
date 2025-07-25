@@ -95,14 +95,14 @@ async function decodeTx(transaction: txObject, owner: string): Promise<TxResult>
 
   if (inputMint && outputMint) {
     if (type === 'buy') {
-      const balance = await getBalance(outputMint); // or inputMint
+      const balance = await getBalance(outputMint); 
       if (typeof balance !== 'number') return { error: 'Invalid balance' };
       return {
         otherMint: outputMint,
         tokenBalance: balance,
       };
     } else {
-      const balance = await getBalance(inputMint); // or inputMint
+      const balance = await getBalance(inputMint); 
       if (typeof balance !== 'number') return { error: 'Invalid balance' };
       return {
         otherMint: inputMint,

@@ -5,6 +5,7 @@ import {
   JupPriceResponse,
   TokenLogoInfo,
   HeliusAssetResponse,
+  JupPriceData,
 } from '../types/interfaces.js';
 
 dotenv.config();
@@ -26,6 +27,7 @@ export async function totalOwned(mint: string, mytokens: number): Promise<string
     const { data }: BirdeyePriceResponse = await res.json();
 
     if (!data?.value) {
+
       tokenPrice = await getTokenPriceFallback(mint);
     } else {
       tokenPrice = data.value;
@@ -40,16 +42,18 @@ export async function totalOwned(mint: string, mytokens: number): Promise<string
 
 export async function getTokenPriceFallback(mint: string): Promise<number> {
   let tokenPrice: number;
-  const priceResponse = await fetch(`https://lite-api.jup.ag/price/v2?ids=${mint}`);
-  const priceData: JupPriceResponse = await priceResponse.json();
-  if (!priceData?.data[mint]?.price) {
+  const priceResponse = await fetch(`https://lite-api.jup.ag/price/v3?ids=${mint}`);
+  const priceData: JupPriceData = await priceResponse.json();
+
+  if (!priceData || !priceData[mint] || !priceData[mint]?.usdPrice) {
     tokenPrice = await getGeckoTerminalPrice(mint);
   } else {
-    tokenPrice = priceData.data[mint].price;
+    tokenPrice = priceData[mint]?.usdPrice
   }
-  console.log('Tokenprice at func:', tokenPrice);
+
   return tokenPrice;
 }
+
 
 async function getGeckoTerminalPrice(mint: string): Promise<number> {
   try {
@@ -65,7 +69,6 @@ async function getGeckoTerminalPrice(mint: string): Promise<number> {
     const { data } = await res.json();
     const raw = data?.attributes?.token_prices?.[mint];
     if (!raw) return 0;
-
     return Number(Number(raw).toFixed(10));
   } catch (err) {
     console.error(err);
