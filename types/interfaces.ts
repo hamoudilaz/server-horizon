@@ -84,11 +84,10 @@ export interface BirdeyePriceResponse {
 
 export interface JupPriceData {
   [key: string]: {
-    id: string;
-    mintSymbol: string;
-    vsToken: string;
-    vsTokenSymbol: string;
-    price: number;
+    usdPrice: number;
+    blockId: number;
+    decimals: number;
+    priceChange24h: number;
   };
 }
 

@@ -2,6 +2,7 @@ import { solMint } from '../helpers/constants.js';
 import { getBalance, loadKey } from '../panel.js';
 import { swap } from '../engine/execute.js';
 import { swapNoz } from '../engine/nozomi.js';
+import { swapZero } from '../engine/zeroSlot.js';
 import { start } from '../helpers/websocket.js';
 import { FastifyRequest, FastifyReply, HookHandlerDoneFunction } from 'fastify';
 import { validateBuyBody, validateSellBody } from '../utils/validateInput.js';
@@ -30,7 +31,7 @@ export const buyHandler = async (
 
     let { mint, buyAmount, slippage, fee, jitoFee, node } = body as validBuyBody;
 
-    let execute = node ? swapNoz : swap;
+    let execute = node ? swapZero : swap;
 
     let txid: ExecuteResult = (await execute(
       solMint,
@@ -88,7 +89,7 @@ export const sellHandler = async (
     const totalSellAmount = Math.floor((ownedAmount * amount) / 100);
     const time = Date.now();
 
-    let execute = node ? swapNoz : swap;
+    let execute = node ? swapZero : swap;
 
     const txid: ExecuteResult = (await execute(
       outputMint,
@@ -153,7 +154,7 @@ export function validateSession(
   reply: FastifyReply,
   done: HookHandlerDoneFunction
 ) {
-  console.log(request.session.user);
+  // console.log(request.session.user);
   if (!request.session.user) {
     reply.status(401).send({ error: 'Invalid session' });
     return;

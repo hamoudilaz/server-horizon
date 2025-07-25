@@ -17,7 +17,7 @@ async function listenToWallets(wallet: string) {
     connection.onLogs(
       new PublicKey(wallet),
       async (logs, context) => {
-        console.log(logs, context);
+        // console.log(logs, context);
         const signature = logs.signature;
         const res = await getTx(signature);
         if ('error' in res) return; // skip errored tx

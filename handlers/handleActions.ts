@@ -94,6 +94,30 @@ export const getPortfolio = async (request: FastifyRequest, reply: FastifyReply)
   }
 };
 
+export const getSingleToken = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { tokenMint, tokenBalance } = request.body as {
+      tokenMint: string;
+      tokenBalance: number;
+    };
+
+    const pubkey = request.session.user?.pubKey;
+    if (!pubkey) {
+      return reply.status(401).send({ error: 'Not authenticated' });
+    }
+
+    const usdValueString = await totalOwned(tokenMint, tokenBalance);
+    const numericUsdValue = parseFloat(usdValueString);
+
+    reply.status(200).send({
+      tokenMint,
+      usdValue: numericUsdValue.toFixed(5),
+    });
+  } catch (err: any) {
+    reply.status(500).send({ error: 'Internal server error', details: err?.message });
+  }
+};
+
 export const fetchTokens = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const pubkey = request.session.user?.pubKey;
