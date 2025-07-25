@@ -23,6 +23,19 @@ export const nextBlockTipWallets = [
   'nextBLoCkPMgmG8ZgJtABeScP35qLa2AMCNKntAP7Xc',
 ] as const;
 
+export const zeroSlotTipWallets = [
+  '4HiwLEP2Bzqj3hM2ENxJuzhcPCdsafwiet3oGkMkuQY4',
+  '7toBU3inhmrARGngC7z6SjyP85HgGMmCTEwGNRAcYnEK',
+  '8mR3wB1nh4D6J9RUCugxUpc6ya8w38LPxZ3ZjcBhgzws',
+  '6SiVU5WEwqfFapRuYCndomztEwDjvS5xgtEof3PLEGm9',
+  'TpdxgNJBWZRL8UXF5mrEsyWxDWx9HQexA9P1eTWQ42p',
+  'D8f3WkQu6dCF33cZxuAsrKHrGsqGP2yvAHf8mX6RXnwf',
+  'GQPFicsy3P3NXxB5piJohoxACqTvWE9fKpLgdsMduoHE',
+  'Ey2JEr8hDkgN8qKJGrLf2yFjRhW7rab99HVxwi5rcvJE',
+  '4iUgjMT8q2hNZnLuhpqZ1QtiV8deFPy2ajvvjEpKKgsS',
+  '3Rz8uD83QsU8wKvZbgWAPvCNDU6Fy8TSZTMcPm3RB6zt',
+] as const;
+
 export const jitoTipWallets = [
   '96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5',
   'HFqU5x63VTqvQss8hp11i4wVV8bD44PvwucfZ2bU7gRe',

@@ -15,6 +15,7 @@ import {
   handleLogout,
   getPortfolio,
   fetchTokens,
+  getSingleToken,
 } from '../handlers/handleActions.js';
 import { FastifyInstance } from 'fastify';
 import { BuyBody, SellBody } from '../types/interfaces.js';
@@ -25,6 +26,7 @@ export default function registerRoutes(app: FastifyInstance) {
   app.post<{ Body: SellBody }>('/api/sell', { preHandler: validateSession }, sellHandler);
 
   app.get('/api/balance', { preHandler: validateSession }, getPortfolio);
+  app.post('/api/single/balance', { preHandler: validateSession }, getSingleToken);
 
   app.post('/api/loadKey', loadWallet);
 
