@@ -6,11 +6,16 @@ import { userConnections, userTrackedTokens } from '../utils/globals.js';
 import { WebSocket } from 'ws';
 
 export function sendToUser(pubKey: string, data: any) {
-  const connection = userConnections.get(pubKey);
-  if (connection && connection.readyState === WebSocket.OPEN) {
-    connection.send(JSON.stringify(data));
+  const clients = userConnections.get(pubKey);
+  if (!clients) return;
+
+  for (const [, ws] of clients) {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(data));
+    }
   }
 }
+
 
 async function listenToWallets(wallet: string) {
   try {
@@ -19,8 +24,8 @@ async function listenToWallets(wallet: string) {
       async (logs, context) => {
         // console.log(logs, context);
         const signature = logs.signature;
-        const res = await getTx(signature);
-        if ('error' in res) return; // skip errored tx
+        const res = await getTx(signature, wallet);
+        if ('error' in res) return; 
         const { otherMint, tokenBalance } = res;
 
         const userTokens = userTrackedTokens.get(wallet);
@@ -57,72 +62,13 @@ async function listenToWallets(wallet: string) {
   }
 }
 
-// setInterval(refreshTokenPrices, 30000);
 
 export async function start(wallet: string) {
   try {
-    // ourBalance = (await getOwnBalance()) * 1e6;
+
 
     await listenToWallets(wallet);
   } catch (error: any) {
     console.error('start error:', error.message);
   }
 }
-
-// const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/* export async function retrieveWalletStateWithTotal(wallet_address) {
-    try {
-
-        const data = await fetch(`https://lite-api.jup.ag/ultra/v1/balances/${wallet_address}`);
-        const tokenAcc = await data.json()
-        console.log(tokenAcc)
-
-        const mintsToFetch = Object.keys(tokenAcc).filter(key => key !== "SOL");
-
-        const priceResponse = await fetch(`https://api.jup.ag/price/v2?ids=${mintsToFetch.join(',')}`);
-        const priceData = await priceResponse.json();
-        // console.log(priceData)
-
-        const transformedResults = [];
-        // console.log(priceData)
-
-        for (const [key, info] of Object.entries(priceData.data)) {
-            const mint = info.id;
-            if (mint === solMint) continue;
-
-            const price = parseFloat(info.price);
-
-            const pricetotal = tokenAcc[mint].uiAmount * price;
-
-            const tokenInfo = await tokenLogo(mint);
-
-            // const totalTokenValue = await totalOwned(mint, tokenAcc[mint].uiAmount);
-
-
-            let token = {
-                tokenMint: mint,
-                tokenBalance: tokenAcc[mint].uiAmount,
-                usdValue: pricetotal,
-                logoURI: tokenInfo?.logoURI || "No logo",
-                symbol: tokenInfo?.symbol || "No ticker"
-            };
-
-
-            transformedResults.push(token);
-
-
-        }
-
-        console.log(transformedResults)
-
-
-
-
-        broadcastToClients(transformedResults)
-        return transformedResults;
-    } catch (e) {
-        console.error('bad wallet state:', e);
-        throw e;
-    }
-} */
