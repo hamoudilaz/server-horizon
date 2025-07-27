@@ -1,10 +1,10 @@
-import { connection, pubKey, getBalance } from '../panel.js';
+import { connection, getBalance } from '../panel.js';
 import { solMint } from '../helpers/constants.js';
 import { decodedTx, txObject } from '../types/interfaces.js';
 
 type TxResult = decodedTx | { error: string };
 
-export default async function getTx(sig: string): Promise<TxResult> {
+export default async function getTx(sig: string, pubKey:string): Promise<TxResult> {
   if (!pubKey) return { error: 'Pubkey is not loaded' };
   const tx = await connection.getTransaction(sig, {
     commitment: 'confirmed',
@@ -95,14 +95,14 @@ async function decodeTx(transaction: txObject, owner: string): Promise<TxResult>
 
   if (inputMint && outputMint) {
     if (type === 'buy') {
-      const balance = await getBalance(outputMint); 
+      const balance = await getBalance(outputMint, owner); 
       if (typeof balance !== 'number') return { error: 'Invalid balance' };
       return {
         otherMint: outputMint,
         tokenBalance: balance,
       };
     } else {
-      const balance = await getBalance(inputMint); 
+      const balance = await getBalance(inputMint,owner); 
       if (typeof balance !== 'number') return { error: 'Invalid balance' };
       return {
         otherMint: inputMint,
