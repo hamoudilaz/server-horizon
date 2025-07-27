@@ -1,5 +1,5 @@
 import { solMint } from '../helpers/constants.js';
-import { getBalance, loadKey } from '../panel.js';
+import { getBalance } from '../panel.js';
 import { swap } from '../engine/execute.js';
 import { swapNoz } from '../engine/nozomi.js';
 import { swapZero } from '../engine/zeroSlot.js';
@@ -14,7 +14,10 @@ import {
   validSellBody,
   Key,
 } from '../types/interfaces.js';
-import { userTrackedTokens } from '../utils/globals.js';
+import { userTrackedTokens,secureWalletStore } from '../utils/globals.js';
+import { Keypair } from '@solana/web3.js';
+import bs58 from 'bs58';
+
 
 export const buyHandler = async (
   request: FastifyRequest<{ Body: BuyBody }>,
@@ -30,6 +33,11 @@ export const buyHandler = async (
     }
 
     let { mint, buyAmount, slippage, fee, jitoFee, node } = body as validBuyBody;
+    const pubKey = request.session.user?.pubKey;
+    if (!pubKey) return reply.status(401).send({ error: 'Not authenticated' });
+
+   const wallet = secureWalletStore.get(pubKey);
+    if (!wallet) return reply.status(403).send({ error: 'Wallet not found in memory' });
 
     let execute = node ? swapZero : swap;
 
@@ -39,7 +47,9 @@ export const buyHandler = async (
       buyAmount,
       slippage,
       fee,
-      jitoFee
+      jitoFee,
+      wallet,
+      pubKey
     )) as ExecuteResult;
 
     if (txid?.limit) {
@@ -47,10 +57,12 @@ export const buyHandler = async (
       return reply.status(429).send({ limit: true, error: `${txid?.limit}` });
     }
 
-    if (txid?.error) {
-      return reply
-        .status(400)
-        .send({ status: '400', error: txid.message || txid.error, details: txid.details });
+ if (txid?.error) {
+      return reply.status(400).send({
+        status: '400',
+        error: txid.message || txid.error,
+        details: txid.details,
+      });
     }
 
     if (!txid.result) {
@@ -82,7 +94,15 @@ export const sellHandler = async (
     }
 
     let { outputMint, amount, fee, jitoFee, node, slippage } = body as validSellBody;
-    let ownedAmount = await getBalance(outputMint);
+
+    const pubKey = request.session.user?.pubKey;
+    if (!pubKey) return reply.status(401).send({ error: 'Not authenticated' });
+
+    const wallet = secureWalletStore.get(pubKey);
+    if (!wallet) return reply.status(403).send({ error: 'Wallet not found in memory' });
+
+    let ownedAmount = await getBalance(outputMint, pubKey);
+
     if (typeof ownedAmount !== 'number' || isNaN(ownedAmount) || ownedAmount <= 0) {
       return reply.status(400).send({ error: 'You dont have any tokens of this mint' });
     }
@@ -97,7 +117,9 @@ export const sellHandler = async (
       totalSellAmount,
       slippage,
       fee,
-      jitoFee
+      jitoFee,
+      wallet,
+      pubKey
     )) as ExecuteResult;
 
     const end = Date.now() - time;
@@ -132,15 +154,17 @@ export const loadWallet = async (request: FastifyRequest<{ Body: Key }>, reply: 
 
     if (!key) return reply.status(400).send({ error: 'Missing key in body' });
 
-    const pubKey = loadKey(key);
+    const wallet = Keypair.fromSecretKey(bs58.decode(key));
+    const pubKey = wallet.publicKey.toBase58();
+
 
     if (typeof pubKey !== 'string') {
-      return reply.status(400).send({ status: '400', error: pubKey.error || 'bad key size' });
+      return reply.status(400).send({ status: '400', error: pubKey || 'bad key size' });
     }
-    
-    await request.session.regenerate();
 
+    await request.session.regenerate();
     request.session.user = { pubKey };
+    secureWalletStore.set(pubKey, wallet);
     userTrackedTokens.set(pubKey, {});
     await start(pubKey);
 

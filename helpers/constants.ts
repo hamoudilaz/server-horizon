@@ -88,7 +88,7 @@ import { userConnections } from '../utils/globals.js';
 export let wss: WebSocketServer;
 export function setupWebSocket(server: Server) {
   wss = new WebSocketServer({ server });
-  wss.on('connection', (ws: WebSocket & { pubKey?: string }) => {
+wss.on('connection', (ws: WebSocket & { pubKey?: string; clientId?: string }) => {
     console.log('Frontend WebSocket client connected');
 
     ws.on('close', () => {
@@ -102,11 +102,20 @@ export function setupWebSocket(server: Server) {
       try {
         const data = JSON.parse(message);
         // Expect a message like { type: 'auth', pubKey: '...' } from the client
-        if (data.type === 'auth' && data.pubKey) {
-          ws.pubKey = data.pubKey;
-          userConnections.set(data.pubKey, ws);
-          console.log(`WebSocket associated with pubKey: ${data.pubKey}`);
-        }
+          if (data.type === 'auth' && data.pubKey && data.clientId) {
+            ws.pubKey = data.pubKey;
+            ws.clientId = data.clientId;
+
+            // If no Map exists for this pubKey, create it
+            if (!userConnections.has(data.pubKey)) {
+              userConnections.set(data.pubKey, new Map());
+            }
+
+            // Store this client's WebSocket in the sub-map
+            userConnections.get(data.pubKey)!.set(data.clientId, ws);
+            console.log(`WebSocket registered: pubKey=${data.pubKey}, clientId=${data.clientId}`);
+          }
+
       } catch (e) {
         console.log('Received non-JSON message:', message);
       }
