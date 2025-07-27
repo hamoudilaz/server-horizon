@@ -137,6 +137,8 @@ export const loadWallet = async (request: FastifyRequest<{ Body: Key }>, reply: 
     if (typeof pubKey !== 'string') {
       return reply.status(400).send({ status: '400', error: pubKey.error || 'bad key size' });
     }
+    
+    await request.session.regenerate();
 
     request.session.user = { pubKey };
     userTrackedTokens.set(pubKey, {});
