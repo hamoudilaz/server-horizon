@@ -1,10 +1,10 @@
 import { VersionedTransaction, ComputeBudgetProgram, PublicKey } from '@solana/web3.js';
-import { wallet, pubKey } from '../panel.js';
 import { request } from 'undici';
 import dotenv from 'dotenv';
 import { fetchWithTimeout, fetchWithTimeoutSwap, agent } from '../helpers/fetchTimer.js';
 import { zeroSlotTipWallets, jitoTipWallets, solMint, calculateFee } from '../helpers/constants.js';
 import { sendTxResult, QuoteResponse, SwapResponse } from '../types/interfaces.js';
+import { Keypair } from '@solana/web3.js';
 
 dotenv.config();
 
@@ -22,7 +22,9 @@ export async function swapZero(
   amount: number,
   SlippageBps: number,
   fee: number,
-  jitoFee: number
+  jitoFee: number,
+  wallet: Keypair,
+  pubKey: string
 ) {
   try {
     if (!wallet || !pubKey) throw new Error('Failed to load wallet');

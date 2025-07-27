@@ -1,10 +1,10 @@
 import { VersionedTransaction, ComputeBudgetProgram } from '@solana/web3.js';
-import { wallet, pubKey } from '../panel.js';
 import { request } from 'undici';
 import { fetchWithTimeout, fetchWithTimeoutSwap, agent } from '../helpers/fetchTimer.js';
 import dotenv from 'dotenv';
 import { calculateFee } from '../helpers/constants.js';
 import { sendTxResult, QuoteResponse, SwapResponse, ExecuteResult } from '../types/interfaces.js';
+import { Keypair } from '@solana/web3.js';
 
 dotenv.config();
 
@@ -18,7 +18,9 @@ export async function swap(
   amount: number,
   SlippageBps: number,
   fee: number,
-  jitoFee: number
+  jitoFee: number,
+  wallet: Keypair,
+  pubKey: string
 ): Promise<ExecuteResult> {
   // console.log('inputmint:', inputmint);
   // console.log('outputMint:', outputMint);

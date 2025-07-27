@@ -1,8 +1,12 @@
 import { BroadcastedToken, DemoSession } from '../types/interfaces.js';
 import { WebSocket } from 'ws';
-export const userConnections = new Map<string, WebSocket>();
+import { Keypair } from '@solana/web3.js';
 
+
+export const userConnections = new Map<string, Map<string, WebSocket>>();
 export const userTrackedTokens = new Map<string, { [mint: string]: BroadcastedToken }>();
+export const secureWalletStore = new Map<string, Keypair>(); // pubKey -> Keypair
+
 
 export function setDemoAmount(session: DemoSession, mint: string, amount: number) {
   if (!session || !session.tokens) return;
@@ -20,3 +24,7 @@ export function getDemoAmount(session: DemoSession, mint: string) {
   if (!session || !session.tokens) return 0;
   return session.tokens[mint] ?? 0;
 }
+
+
+
+
