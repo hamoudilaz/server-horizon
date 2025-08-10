@@ -24,7 +24,6 @@ async function getBalance(outputMint: string, pubKey: string) {
       Number(tokenAccounts.value[0].account.data.parsed.info.tokenAmount.amount)
     );
 
-    console.log('amt to sell func:', amountToSell);
 
     return amountToSell;
   } catch (error) {

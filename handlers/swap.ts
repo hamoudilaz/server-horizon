@@ -39,7 +39,7 @@ export const buyHandler = async (
    const wallet = secureWalletStore.get(pubKey);
     if (!wallet) return reply.status(403).send({ error: 'Wallet not found in memory' });
 
-    let execute = node ? swapZero : swap;
+    let execute = node ? swapNoz : swap;
 
     let txid: ExecuteResult = (await execute(
       solMint,
@@ -109,7 +109,7 @@ export const sellHandler = async (
     const totalSellAmount = Math.floor((ownedAmount * amount) / 100);
     const time = Date.now();
 
-    let execute = node ? swapZero : swap;
+    let execute = node ? swapNoz : swap;
 
     const txid: ExecuteResult = (await execute(
       outputMint,
