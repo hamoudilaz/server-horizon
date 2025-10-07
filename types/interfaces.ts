@@ -13,6 +13,7 @@ export interface ExecuteResult {
   error?: any;
   message?: string;
   details?: any;
+  signature?: string;
 }
 
 export interface validBuyBody extends BuyBody {
@@ -132,10 +133,7 @@ export interface SimulatedToken {
   logoURI: string;
   symbol: string;
 }
-export type BroadcastMessage =
-  | BroadcastedToken
-  | SimulatedToken
-  | { tokenMint: string; removed: true };
+export type BroadcastMessage = BroadcastedToken | SimulatedToken | { tokenMint: string; removed: true };
 
 export interface broadcastDelete {
   tokenMint: string;
@@ -150,6 +148,7 @@ export interface decodedTx {
 export interface sendTxResult {
   error?: { message: string };
   result?: string;
+  signature?: string;
 }
 
 export interface QuoteResponse {

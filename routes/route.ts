@@ -10,13 +10,7 @@ import {
 } from '../utils/demo/buy.js';
 import { validateSession } from '../handlers/swap.js';
 
-import {
-  handleAmount,
-  handleLogout,
-  getPortfolio,
-  fetchTokens,
-  getSingleToken,
-} from '../handlers/handleActions.js';
+import { handleAmount, handleLogout, getPortfolio, fetchTokens, getSingleToken } from '../handlers/handleActions.js';
 import { FastifyInstance } from 'fastify';
 import { BuyBody, SellBody } from '../types/interfaces.js';
 
@@ -49,11 +43,7 @@ export default function registerRoutes(app: FastifyInstance) {
 
   app.post<{ Body: BuyBody }>('/api/demo/buy', { preHandler: validateDemoSession }, demoBuyhandler);
 
-  app.post<{ Body: SellBody }>(
-    '/api/demo/sell',
-    { preHandler: validateDemoSession },
-    demoSellHandler
-  );
+  app.post<{ Body: SellBody }>('/api/demo/sell', { preHandler: validateDemoSession }, demoSellHandler);
 
   app.post('/api/start/demo', startDemo);
 

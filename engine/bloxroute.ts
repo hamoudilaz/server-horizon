@@ -2,21 +2,22 @@ import { VersionedTransaction, ComputeBudgetProgram, PublicKey } from '@solana/w
 import { request } from 'undici';
 import dotenv from 'dotenv';
 import { fetchWithTimeout, fetchWithTimeoutSwap, agent } from '../helpers/fetchTimer.js';
-import { nozomiTipWallets, jitoTipWallets, solMint, calculateFee } from '../helpers/constants.js';
+import { jitoTipWallets, calculateFee, bloxrouteTipWallets } from '../helpers/constants.js';
 import { sendTxResult, QuoteResponse, SwapResponse } from '../types/interfaces.js';
 import { Keypair } from '@solana/web3.js';
 
 dotenv.config();
 
-const randomWallet = nozomiTipWallets[Math.floor(Math.random() * nozomiTipWallets.length)];
-const nozomiPubkey = new PublicKey(randomWallet);
+const randomWallet = bloxrouteTipWallets[Math.floor(Math.random() * bloxrouteTipWallets.length)];
+const bloxroutePubKey = new PublicKey(randomWallet);
 
 // API's
-const NOZ_RPC = process.env.NOZ_URL;
+const BLOXROUTE_URL = process.env.BLOXROUTE_URL;
+const AUTH_HEADER = process.env.BLOXROUTE_AUTH;
 const quoteApi = process.env.JUP_QUOTE;
 const swapApi = process.env.JUP_SWAP;
 
-export async function swapNoz(
+export async function swapBloxroute(
   inputmint: string,
   outputMint: string,
   amount: number,
@@ -29,7 +30,7 @@ export async function swapNoz(
   try {
     if (!wallet || !pubKey) throw new Error('Failed to load wallet');
 
-    if (!swapApi || !NOZ_RPC || !quoteApi) {
+    if (!swapApi || !BLOXROUTE_URL || !quoteApi) {
       return { error: 'Configuration error: Missing Swap API URL' };
     }
 
@@ -119,32 +120,32 @@ export async function swapNoz(
 
     const tipIndex = transaction.message.staticAccountKeys.findIndex((key) => jitoTipWallets.includes(key.toBase58()));
 
-    transaction.message.staticAccountKeys[tipIndex] = nozomiPubkey;
+    transaction.message.staticAccountKeys[tipIndex] = bloxroutePubKey;
 
     transaction.sign([wallet]);
 
     const transactionBase64 = Buffer.from(transaction.serialize()).toString('base64');
 
-    const { body: sendResponse } = await request(NOZ_RPC!, {
+    const { body: sendResponse } = await request(BLOXROUTE_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: AUTH_HEADER,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'sendTransaction',
-        params: [transactionBase64, { encoding: 'base64' }],
+        transaction: { content: transactionBase64 },
+        frontRunningProtection: true,
       }),
       dispatcher: agent,
     });
 
     const sendResult: sendTxResult = (await sendResponse.json()) as sendTxResult;
-
     if (sendResult.error) {
       console.error('Error sending transaction:', sendResult.error);
       return { error: sendResult.error.message };
     }
 
-    console.log(`NOZOMI: https://solscan.io/tx/${sendResult.result}`);
+    console.log(`BLOXROUTE: https://solscan.io/tx/${sendResult.signature}`);
     return sendResult;
   } catch (err) {
     return err;

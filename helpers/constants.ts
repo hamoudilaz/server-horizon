@@ -67,6 +67,13 @@ export const nozomiTipWallets = [
   'nozxNBgWohjR75vdspfxR5H9ceC7XXH99xpxhVGt3Bb',
 ] as const;
 
+export const bloxrouteTipWallets = [
+  'HWEoBxYs7ssKuudEjzjmpfJVX7Dvi7wescFsVx2L5yoY',
+  '95cfoy472fcQHaw4tPGBTKpn6ZQnfEPfBgDQx6gcRmRg',
+  '3UQUKjhMKaY2S6bjcQD6yHB7utcZt5bfarRCmctpRtUd',
+  'FogxVNs6Mm2w9rnGL1vkARSwJxvLE8mujTv3LK8RnUhF',
+] as const;
+
 export function calculateFee(fee: number, unitLimit: number) {
   const LAMPORTS_PER_SOL = 1_000_000_000;
   const MICROLAMPORTS_PER_LAMPORT = 1_000_000;
@@ -88,7 +95,7 @@ import { userConnections } from '../utils/globals.js';
 export let wss: WebSocketServer;
 export function setupWebSocket(server: Server) {
   wss = new WebSocketServer({ server });
-wss.on('connection', (ws: WebSocket & { pubKey?: string; clientId?: string }) => {
+  wss.on('connection', (ws: WebSocket & { pubKey?: string; clientId?: string }) => {
     console.log('Frontend WebSocket client connected');
 
     ws.on('close', () => {
@@ -102,20 +109,19 @@ wss.on('connection', (ws: WebSocket & { pubKey?: string; clientId?: string }) =>
       try {
         const data = JSON.parse(message);
         // Expect a message like { type: 'auth', pubKey: '...' } from the client
-          if (data.type === 'auth' && data.pubKey && data.clientId) {
-            ws.pubKey = data.pubKey;
-            ws.clientId = data.clientId;
+        if (data.type === 'auth' && data.pubKey && data.clientId) {
+          ws.pubKey = data.pubKey;
+          ws.clientId = data.clientId;
 
-            // If no Map exists for this pubKey, create it
-            if (!userConnections.has(data.pubKey)) {
-              userConnections.set(data.pubKey, new Map());
-            }
-
-            // Store this client's WebSocket in the sub-map
-            userConnections.get(data.pubKey)!.set(data.clientId, ws);
-            console.log(`WebSocket registered: pubKey=${data.pubKey}, clientId=${data.clientId}`);
+          // If no Map exists for this pubKey, create it
+          if (!userConnections.has(data.pubKey)) {
+            userConnections.set(data.pubKey, new Map());
           }
 
+          // Store this client's WebSocket in the sub-map
+          userConnections.get(data.pubKey)!.set(data.clientId, ws);
+          console.log(`WebSocket registered: pubKey=${data.pubKey}, clientId=${data.clientId}`);
+        }
       } catch (e) {
         console.log('Received non-JSON message:', message);
       }
