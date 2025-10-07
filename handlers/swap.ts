@@ -6,23 +6,13 @@ import { swapZero } from '../engine/zeroSlot.js';
 import { start } from '../helpers/websocket.js';
 import { FastifyRequest, FastifyReply, HookHandlerDoneFunction } from 'fastify';
 import { validateBuyBody, validateSellBody } from '../utils/validateInput.js';
-import {
-  BuyBody,
-  ExecuteResult,
-  SellBody,
-  validBuyBody,
-  validSellBody,
-  Key,
-} from '../types/interfaces.js';
-import { userTrackedTokens,secureWalletStore } from '../utils/globals.js';
+import { BuyBody, ExecuteResult, SellBody, validBuyBody, validSellBody, Key } from '../types/interfaces.js';
+import { userTrackedTokens, secureWalletStore } from '../utils/globals.js';
 import { Keypair } from '@solana/web3.js';
 import bs58 from 'bs58';
+import { swapBloxroute } from '../engine/bloxroute.js';
 
-
-export const buyHandler = async (
-  request: FastifyRequest<{ Body: BuyBody }>,
-  reply: FastifyReply
-) => {
+export const buyHandler = async (request: FastifyRequest<{ Body: BuyBody }>, reply: FastifyReply) => {
   const start = Date.now();
   try {
     const body = { ...request.body };
@@ -36,10 +26,10 @@ export const buyHandler = async (
     const pubKey = request.session.user?.pubKey;
     if (!pubKey) return reply.status(401).send({ error: 'Not authenticated' });
 
-   const wallet = secureWalletStore.get(pubKey);
+    const wallet = secureWalletStore.get(pubKey);
     if (!wallet) return reply.status(403).send({ error: 'Wallet not found in memory' });
 
-    let execute = node ? swapZero : swap;
+    let execute = node ? swapBloxroute : swap;
 
     let txid: ExecuteResult = (await execute(
       solMint,
@@ -57,7 +47,7 @@ export const buyHandler = async (
       return reply.status(429).send({ limit: true, error: `${txid?.limit}` });
     }
 
- if (txid?.error) {
+    if (txid?.error) {
       return reply.status(400).send({
         status: '400',
         error: txid.message || txid.error,
@@ -65,13 +55,13 @@ export const buyHandler = async (
       });
     }
 
-    if (!txid.result) {
+    if (!txid.signature) {
       return reply.status(400).send({ status: '400', error: `${txid}` });
     }
 
     const end = Date.now() - start;
 
-    return reply.status(200).send({ message: `https://solscan.io/tx/${txid.result}`, end });
+    return reply.status(200).send({ message: `https://solscan.io/tx/${txid.signature}`, end });
   } catch (err: any) {
     return reply.status(500).send({
       status: '500',
@@ -81,10 +71,7 @@ export const buyHandler = async (
   }
 };
 
-export const sellHandler = async (
-  request: FastifyRequest<{ Body: SellBody }>,
-  reply: FastifyReply
-) => {
+export const sellHandler = async (request: FastifyRequest<{ Body: SellBody }>, reply: FastifyReply) => {
   try {
     const body = { ...request.body };
 
@@ -109,7 +96,7 @@ export const sellHandler = async (
     const totalSellAmount = Math.floor((ownedAmount * amount) / 100);
     const time = Date.now();
 
-    let execute = node ? swapZero : swap;
+    let execute = node ? swapBloxroute : swap;
 
     const txid: ExecuteResult = (await execute(
       outputMint,
@@ -128,16 +115,14 @@ export const sellHandler = async (
     }
 
     if (txid?.error) {
-      return reply
-        .status(400)
-        .send({ status: '400', error: txid.message || txid.error, details: txid.details });
+      return reply.status(400).send({ status: '400', error: txid.message || txid.error, details: txid.details });
     }
 
-    if (!txid.result) {
+    if (!txid.signature) {
       return reply.status(400).send({ status: '400', error: `${txid}` });
     }
 
-    return reply.status(200).send({ message: `https://solscan.io/tx/${txid.result}`, end });
+    return reply.status(200).send({ message: `https://solscan.io/tx/${txid.signature}`, end });
   } catch (err: any) {
     console.error('Server error:', err);
     return reply.status(500).send({
@@ -157,7 +142,6 @@ export const loadWallet = async (request: FastifyRequest<{ Body: Key }>, reply: 
     const wallet = Keypair.fromSecretKey(bs58.decode(key));
     const pubKey = wallet.publicKey.toBase58();
 
-
     if (typeof pubKey !== 'string') {
       return reply.status(400).send({ status: '400', error: pubKey || 'bad key size' });
     }
@@ -175,11 +159,7 @@ export const loadWallet = async (request: FastifyRequest<{ Body: Key }>, reply: 
   }
 };
 
-export function validateSession(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  done: HookHandlerDoneFunction
-) {
+export function validateSession(request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction) {
   // console.log(request.session.user);
   if (!request.session.user) {
     reply.status(401).send({ error: 'Invalid session' });
