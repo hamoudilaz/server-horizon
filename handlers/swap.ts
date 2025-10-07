@@ -55,13 +55,13 @@ export const buyHandler = async (request: FastifyRequest<{ Body: BuyBody }>, rep
       });
     }
 
-    if (!txid.signature) {
+    if (!txid.result) {
       return reply.status(400).send({ status: '400', error: `${txid}` });
     }
 
     const end = Date.now() - start;
 
-    return reply.status(200).send({ message: `https://solscan.io/tx/${txid.signature}`, end });
+    return reply.status(200).send({ message: `https://solscan.io/tx/${txid.result}`, end });
   } catch (err: any) {
     return reply.status(500).send({
       status: '500',
@@ -118,11 +118,11 @@ export const sellHandler = async (request: FastifyRequest<{ Body: SellBody }>, r
       return reply.status(400).send({ status: '400', error: txid.message || txid.error, details: txid.details });
     }
 
-    if (!txid.signature) {
+    if (!txid.result) {
       return reply.status(400).send({ status: '400', error: `${txid}` });
     }
 
-    return reply.status(200).send({ message: `https://solscan.io/tx/${txid.signature}`, end });
+    return reply.status(200).send({ message: `https://solscan.io/tx/${txid.result}`, end });
   } catch (err: any) {
     console.error('Server error:', err);
     return reply.status(500).send({
