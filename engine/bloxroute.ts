@@ -145,8 +145,12 @@ export async function swapBloxroute(
       return { error: sendResult.error.message };
     }
 
+    if (!sendResult.signature) {
+      console.error('Error sending transaction:', sendResult);
+      return { error: 'signature missing from bloxroute' };
+    }
     console.log(`BLOXROUTE: https://solscan.io/tx/${sendResult.signature}`);
-    return sendResult;
+    return { result: sendResult.signature };
   } catch (err) {
     return err;
   }
