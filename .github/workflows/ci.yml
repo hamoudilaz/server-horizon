@@ -29,5 +29,5 @@ jobs:
           NODE_ENV: test
           RPC_URL: 'https://example.com'
           WSS_URL: 'wss://example.com'
-          SESSION_SECRET: 'test123'
+          SESSION_SECRET: 'test123test123test123test123test123test123te'
         run: npm test
