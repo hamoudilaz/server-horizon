@@ -23,8 +23,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        working-directory: Server
 
       - name: Run tests
         run: npm test
-        working-directory: Server
