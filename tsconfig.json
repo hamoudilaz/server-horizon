@@ -1,16 +1,18 @@
 {
   "compilerOptions": {
-    "target": "ES2020", // Compile to a modern JavaScript version
-    "module": "NodeNext", // Use the modern Node.js module system
+    "target": "ES2022",
+    "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "strict": true, // Enable all strict type-checking options
-    "esModuleInterop": true, // Allows better interoperability between CommonJS and ES Modules
-    "skipLibCheck": true, // Skip type checking of declaration files
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist", // Where to output the compiled JavaScript
-    "rootDir": "./", // The root directory of your source files
-    "allowJs": true // Allow JavaScript files to be compiled
+    "outDir": "./dist",
+    "rootDir": "./",
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
   },
   "include": ["**/*.ts", "**/*.d.ts"],
-  "exclude": ["node_modules", "__tests__"] // Which files to ignore
+  "exclude": ["node_modules"]
 }

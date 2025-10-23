@@ -31,9 +31,11 @@ export const handleAmount = async (req: FastifyRequest, reply: FastifyReply) => 
 
 export const handleLogout = async (request: FastifyRequest, reply: FastifyReply) => {
   const pubkey = request.session.user?.pubKey;
-  if (pubkey) {
-    userTrackedTokens.delete(pubkey);
+  if (!pubkey) {
+    return reply.status(400).send({ error: 'Invalid or missing session ID' });
   }
+  userTrackedTokens.delete(pubkey);
+
   await request.session.destroy();
   reply
     .clearCookie('sessionId', {
@@ -54,9 +56,7 @@ export const getPortfolio = async (request: FastifyRequest, reply: FastifyReply)
     }
 
     const solPrice = await getSolPrice();
-    const balances = await (
-      await fetch(`https://lite-api.jup.ag/ultra/v1/balances/${pubkey}`)
-    ).json();
+    const balances = await (await fetch(`https://lite-api.jup.ag/ultra/v1/balances/${pubkey}`)).json();
 
     const portfolio = [];
 

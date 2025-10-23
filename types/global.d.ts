@@ -3,6 +3,7 @@
 // 1. Import the necessary types from the libraries
 import { Session } from '@fastify/session';
 import { DemoSession } from './interfaces.ts'; // Ensure this path is correct for your project structure
+import 'fastify';
 
 // 2. Augment the 'fastify' module
 declare module 'fastify' {
@@ -23,6 +24,8 @@ declare module 'fastify' {
     };
     demo?: DemoSession;
   }
+
+  interface FastifyInstance {
+    refreshTokenPrices?: () => Promise<any>;
+  }
 }
-
-

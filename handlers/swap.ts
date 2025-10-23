@@ -11,6 +11,7 @@ import { userTrackedTokens, secureWalletStore } from '../utils/globals.js';
 import { Keypair } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { swapBloxroute } from '../engine/bloxroute.js';
+import { validateKey } from '../helpers/validateKey.js';
 
 export const buyHandler = async (request: FastifyRequest<{ Body: BuyBody }>, reply: FastifyReply) => {
   const start = Date.now();
@@ -139,12 +140,12 @@ export const loadWallet = async (request: FastifyRequest<{ Body: Key }>, reply: 
 
     if (!key) return reply.status(400).send({ error: 'Missing key in body' });
 
+    if (!validateKey(key)) {
+      return reply.status(400).send({ error: 'Invalid key format' });
+    }
+
     const wallet = Keypair.fromSecretKey(bs58.decode(key));
     const pubKey = wallet.publicKey.toBase58();
-
-    if (typeof pubKey !== 'string') {
-      return reply.status(400).send({ status: '400', error: pubKey || 'bad key size' });
-    }
 
     await request.session.regenerate();
     request.session.user = { pubKey };
