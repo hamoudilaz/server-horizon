@@ -16,18 +16,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Create test env
+        run: |
+          echo "NODE_ENV=test" >> .env
+          echo "SESSION_SECRET=test123test123test123test123test123test123te" >> .env
+          echo "COOKIE_NAME=sessionid" >> .env
+          echo "RPC_URL=https://example.com" >> .env
+          echo "WSS_URL=wss://example.com" >> .env
+
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '22'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run tests
-        env:
-          NODE_ENV: test
-          RPC_URL: 'https://example.com'
-          WSS_URL: 'wss://example.com'
-          SESSION_SECRET: 'test123test123test123test123test123test123te'
         run: npm test
