@@ -22,7 +22,11 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run tests
+        env:
+          NODE_ENV: test
+          RPC_URL: 'https://example.com'
+          WSS_URL: 'wss://example.com'
         run: npm test
