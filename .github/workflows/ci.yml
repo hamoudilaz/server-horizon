@@ -16,18 +16,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Create test env
-        run: |
-          echo "NODE_ENV=test" >> .env
-          echo "SESSION_SECRET=test123test123test123test123test123test123te" >> .env
-          echo "COOKIE_NAME=sessionid" >> .env
-          echo "RPC_URL=https://example.com" >> .env
-          echo "WSS_URL=wss://example.com" >> .env
-
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '22'
+
+      - name: Create .env file
+        run: |
+          echo "RPC_URL=https://api.mainnet-beta.solana.com" >> .env
+          echo "WSS_URL=wss://convincing-wild-mansion.solana-mainnet.quiknode.pro/84e188dafd8e7be7e208d758c2a5d626d7430f95/" >> .env
+          echo "SESSION_SECRET=test123test123test123test123test123test123te" >> .env
+          echo "NODE_ENV=development" >> .env
 
       - name: Install dependencies
         run: npm install
