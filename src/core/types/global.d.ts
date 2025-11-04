@@ -8,6 +8,7 @@ declare module 'express-session' {
   interface SessionData {
     user?: {
       pubKey: string;
+      encryptedKey?: string;
     };
     demo?: DemoSession;
   }

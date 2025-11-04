@@ -8,7 +8,7 @@ import {
   getSingleToken,
   fetchTokens,
 } from './user.controller.js';
-import { validateSession } from '../swap/swap.middleware.js'; // Re-use middleware
+import { validateSession } from '../../core/middlewares/swap.middleware.js';
 
 const router = Router();
 

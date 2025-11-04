@@ -2,10 +2,11 @@ import { VersionedTransaction, ComputeBudgetProgram } from '@solana/web3.js';
 import { request } from 'undici';
 import { fetchWithTimeout, fetchWithTimeoutSwap, agent } from '../external/fetchTimer.js';
 import dotenv from 'dotenv';
-import { calculateFee } from '../../config/constants.js';
 import { sendTxResult, QuoteResponse, SwapResponse } from '../../core/types/interfaces.js';
 import { Keypair } from '@solana/web3.js';
 import { ExecuteResult } from '../../core/types/interfaces.js';
+import logger from '../../config/logger.js';
+import { calculateFee } from '../../core/utils/calculateFee.js';
 
 dotenv.config();
 
@@ -23,17 +24,16 @@ export async function swap(
   wallet: Keypair,
   pubKey: string
 ): Promise<ExecuteResult> {
-  // console.log('inputmint:', inputmint);
-  // console.log('outputMint:', outputMint);
-  // console.log('amount:', amount);
-  // console.log('SlippageBps:', SlippageBps);
-  // console.log('fee:', fee);
-  // console.log('jitoFee:', jitoFee);
+  const logContext = { pubKey, inputmint, outputMint, amount, service: 'bloxroute' };
 
   try {
-    if (!wallet || !pubKey) throw new Error('Failed to load wallet');
+    if (!wallet || !pubKey) {
+      logger.error({ pubKey }, 'Failed to load wallet for swapBloxroute');
+      throw new Error('Failed to load wallet');
+    }
 
     if (!swapApi || !JITO_RPC || !quoteApi) {
+      logger.error('Configuration error: Missing JITO or Jupiter API URL');
       return { error: 'Configuration error: Missing Swap API URL' };
     }
 
@@ -44,7 +44,7 @@ export async function swap(
       try {
         const quoteRes = await fetchWithTimeout(url, 120);
         if (quoteRes && 'limit' in quoteRes) {
-          console.warn(`⚠️ Quote retry ${attempt}: rate limit active.`);
+          logger.warn({ attempt }, `Quote retry: rate limit active.`);
           quote = { error: quoteRes.limit };
           continue;
         }
@@ -52,13 +52,17 @@ export async function swap(
         quote = (await quoteRes.json()) as QuoteResponse;
 
         if (!quote.error) break;
-        console.log(quote.error);
+        logger.warn({ error: quote.error }, 'Error in quote response');
       } catch {
-        console.warn(`⚠️ Quote retry ${attempt}: timeout or fetch error`);
+        logger.warn({ attempt }, `Quote retry: timeout or fetch error`);
       }
     }
+    if (quote.error) {
+      logger.error({ ...logContext, error: quote.error }, 'Error getting quote for swap after all retries');
+      return { error: quote.error };
+    }
 
-    console.log('Requesting swap transaction...');
+    logger.info(`Requesting swap transaction...`);
 
     let swapTransaction;
     let unitLimit;
@@ -74,7 +78,7 @@ export async function swap(
         });
 
         if (swapRes && 'limit' in swapRes) {
-          console.warn(`⚠️ Swap retry ${attempt}: Rate limit active.`);
+          logger.warn({ attempt }, `Swap retry: Rate limit active.`);
           continue; // Skip to the next attempt
         }
 
@@ -84,17 +88,18 @@ export async function swap(
 
         if (swapTransaction && unitLimit) break;
 
-        console.warn(`⚠️ Swap retry ${attempt}: no swapTransaction`);
-      } catch {
-        console.warn(`⚠️ Swap retry ${attempt}: timeout or fetch error`);
+        logger.warn(`Swap retry: no swapTransaction. Attempt: ${attempt}`);
+      } catch (err) {
+        logger.warn(`Swap retry: timeout or fetch error`);
       }
     }
 
     if (!swapTransaction || !unitLimit) {
+      logger.error('Failed to retrieve swap transaction after all retries');
       return { error: 'Retry getting swap transaction' };
     }
 
-    console.log('Signing...');
+    logger.info('Retrieved swap transaction, Signing transaction...');
 
     let baseFee = calculateFee(fee, unitLimit);
 
@@ -138,15 +143,17 @@ export async function swap(
       dispatcher: agent,
     });
 
-    const sendResult: sendTxResult = (await sendResponse.json()) as sendTxResult;
+    const sendResult = (await sendResponse.json()) as sendTxResult;
+
     if (sendResult.error) {
-      console.error('Error sending transaction:', sendResult.error);
+      logger.error({ error: sendResult.error }, `Error sending transaction to Jito`);
       return sendResult as unknown as ExecuteResult;
     }
+    logger.info(`Successfull swap in JITO: https://solscan.io/tx/${sendResult.result}`);
 
-    console.log(`JITO: https://solscan.io/tx/${sendResult.result}`);
     return sendResult as unknown as ExecuteResult;
-  } catch {
+  } catch (err) {
+    logger.error({ ...logContext, err }, 'Unhandled exception in swap');
     return { error: 'Unknown error' };
   }
 }

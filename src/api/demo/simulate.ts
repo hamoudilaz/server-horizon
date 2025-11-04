@@ -1,18 +1,26 @@
-import { tokenLogo, getTokenPriceFallback, getSolPrice } from './external/price.service.js';
-import { wss } from '../config/constants.js';
-import { setDemoAmount, getDemoAmount } from '../config/globals.js';
-import { DEFAULT_IMG } from '../config/constants.js';
-import { SimulatedToken, BroadcastMessage, DemoSession } from '../core/types/interfaces.js';
+import { tokenLogo, getTokenPriceFallback } from '../../services/external/price.service.js';
+import { setDemoAmount, getDemoAmount } from './globals.js';
+import { DEFAULT_IMG, SOL_PRICE_KEY } from '../../config/constants.js';
+import { SimulatedToken, BroadcastMessage } from '../../core/types/interfaces.js';
+import { DemoSessionTypes } from './demo.types.js';
+import logger from '../../config/logger.js';
+import { redisClient } from '../../config/redis.js';
 
-import { WebSocket } from 'ws';
-
-export async function simulateBuy(session: DemoSession, outputMint: string, solToSpend: number) {
+export async function simulateBuy(
+  session: DemoSessionTypes,
+  outputMint: string,
+  solToSpend: number
+): Promise<{ result?: string; error?: string } | void> {
   try {
     const data = session;
-    if (!data) throw new Error('Invalid session');
+    if (!data) {
+      logger.warn('SimulateBuy called with invalid session');
+      throw new Error('Invalid session');
+    }
     if (!data.tokensDisplay) data.tokensDisplay = {};
 
-    const solPrice = await getSolPrice();
+    const solPrice = Number(await redisClient.get(SOL_PRICE_KEY));
+
     const costInUsd = solToSpend * solPrice;
 
     if (data.currentUsd < costInUsd) {
@@ -25,9 +33,10 @@ export async function simulateBuy(session: DemoSession, outputMint: string, solT
     const logoData = await tokenLogo(outputMint);
 
     let tokenPrice = await getTokenPriceFallback(outputMint);
-    console.log(tokenPrice);
+    logger.debug({ outputMint, tokenPrice }, `Fetched token price for demo buy`);
 
-    if (tokenPrice === null || tokenPrice === undefined) {
+    if (tokenPrice === null || tokenPrice === undefined || tokenPrice === 0) {
+      logger.warn({ outputMint }, 'Failed to fetch token price for demo buy');
       return { error: 'Failed to fetch token price' };
     }
 
@@ -61,28 +70,38 @@ export async function simulateBuy(session: DemoSession, outputMint: string, solT
     };
     data.tokensDisplay[outputMint] = simulated;
 
-    broadcastToClients(simulated);
-    // sessions.set(session, data);
+    await broadcastToClients(simulated);
     return { result: 'SIMULATED_BUY_' + Date.now() };
   } catch (err) {
-    console.error('Simulation Error:', err);
-    return err;
+    logger.error({ err, outputMint, solToSpend }, `Simulation Buy Error`);
+    const message = err instanceof Error ? err.message : String(err);
+    return { error: message };
   }
 }
 
-export async function simulateSell(session: DemoSession, mint: string, totalOwned: number, sellPercentage: number) {
+export async function simulateSell(
+  session: DemoSessionTypes,
+  mint: string,
+  totalOwned: number,
+  sellPercentage: number
+): Promise<{ result?: string; error?: string } | void> {
   try {
     const data = session;
-    if (!data || !data.tokensDisplay) return { error: 'Invalid session or display state' };
+    if (!data || !data.tokensDisplay) {
+      logger.warn('SimulateSell called with invalid session or display state');
+      return { error: 'Invalid session or display state' };
+    }
 
     const price = await getTokenPriceFallback(mint);
-    if (price === null || price === undefined) {
+    if (price === null || price === undefined || price === 0) {
+      logger.warn({ mint }, 'Failed to fetch token price for demo sell');
       return { error: 'Failed to fetch token price' };
     }
+
     const soldAmount = totalOwned * (sellPercentage / 100);
     if (!isFinite(soldAmount)) {
       delete data.tokensDisplay[mint];
-      broadcastToClients({ tokenMint: mint, removed: true });
+      await broadcastToClients({ tokenMint: mint, removed: true });
       return;
     }
     const usdEarned = soldAmount * price;
@@ -90,6 +109,7 @@ export async function simulateSell(session: DemoSession, mint: string, totalOwne
 
     setDemoAmount(session, mint, -soldAmount);
     let remainingAmount = getDemoAmount(session, mint);
+
     if (remainingAmount > 100) {
       remainingAmount = Number(remainingAmount.toFixed(0));
     } else {
@@ -98,7 +118,7 @@ export async function simulateSell(session: DemoSession, mint: string, totalOwne
 
     if (sellPercentage === 100 || remainingAmount <= 0) {
       delete data.tokensDisplay[mint];
-      broadcastToClients({ tokenMint: mint, removed: true });
+      await broadcastToClients({ tokenMint: mint, removed: true });
     } else {
       let totalUSD = remainingAmount * price;
       if (totalUSD > 1) {
@@ -119,21 +139,23 @@ export async function simulateSell(session: DemoSession, mint: string, totalOwne
       };
       data.tokensDisplay[mint] = simulated;
 
-      broadcastToClients(simulated);
+      await broadcastToClients(simulated);
     }
 
     // sessions.set(session, data);
     return { result: 'SIMULATED_' + Date.now() };
   } catch (err) {
-    console.error('Simulation Error:', err);
-    return err;
+    logger.error({ err, mint, totalOwned, sellPercentage }, `Simulation Sell Error`);
+    const message = err instanceof Error ? err.message : String(err);
+    return { error: message };
   }
 }
 
-export function broadcastToClients(data: BroadcastMessage) {
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(data));
-    }
-  });
+export async function broadcastToClients(data: BroadcastMessage) {
+  try {
+    // Publish to a new channel dedicated to demo updates
+    await redisClient.publish('ws-demo-broadcast', JSON.stringify(data));
+  } catch (err) {
+    logger.error({ err }, 'Failed to publish demo WebSocket message to Redis');
+  }
 }

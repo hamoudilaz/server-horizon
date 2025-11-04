@@ -7,7 +7,9 @@ import session from 'express-session';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import apiRouter from './api/index.js'; // Your main router
-import { errorHandler } from './core/middleware/errorHandler.js';
+import { errorHandler } from './core/middlewares/errorHandler.js';
+import logger, { httpLogger } from './config/logger.js';
+import { redisStore } from './config/redis.js';
 
 dotenv.config();
 
@@ -36,6 +38,8 @@ app.use(
     methods: ['GET', 'POST', 'OPTIONS'],
   })
 );
+
+app.use(httpLogger);
 app.use(express.json());
 app.use(cookieParser());
 
@@ -44,7 +48,7 @@ app.use(
     windowMs: 10000,
     max: 1533,
     handler: (req, res) => {
-      console.log(`Rate limit exceeded for IP ${req.ip}`);
+      logger.warn(`Rate limit exceeded for IP ${req.ip}`);
       res.status(429).json({
         statusCode: 429,
         error: 'Too Many Requests',
@@ -56,11 +60,13 @@ app.use(
 
 app.use(
   session({
+    name: 'sessionId',
     secret: process.env.SESSION_SECRET!,
     saveUninitialized: false,
     cookie: COOKIE_OPTIONS,
     rolling: false,
     resave: false,
+    store: redisStore,
   })
 );
 

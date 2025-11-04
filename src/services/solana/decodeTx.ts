@@ -4,9 +4,9 @@ import { decodedTx, txObject } from '../../core/types/interfaces.js';
 
 type TxResult = decodedTx | { error: string };
 
-export default async function getTx(sig: string, pubKey: string): Promise<TxResult> {
+export default async function getTx(signature: string, pubKey: string): Promise<TxResult> {
   if (!pubKey) return { error: 'Pubkey is not loaded' };
-  const tx = await connection.getTransaction(sig, {
+  const tx = await connection.getTransaction(signature, {
     commitment: 'confirmed',
     maxSupportedTransactionVersion: 0,
   });

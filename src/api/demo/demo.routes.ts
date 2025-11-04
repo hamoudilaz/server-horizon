@@ -8,7 +8,7 @@ import {
   startDemo,
   resetDemo,
 } from './demo.controller.js';
-import { validateDemoSession } from './demo.middleware.js';
+import { validateDemoSession } from '../../core/middlewares/demo.middleware.js';
 
 const router = Router();
 // /api/demo +

@@ -1,13 +1,15 @@
-import { getSolPrice, tokenLogo, totalOwned } from '../../services/external/price.service.js';
-import { solMint } from '../../config/constants.js';
+import { tokenLogo, totalOwned } from '../../services/external/price.service.js';
+import { SOL_PRICE_KEY, solMint } from '../../config/constants.js';
 import { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
-import { userTrackedTokens } from '../../config/globals.js';
 import { validateKey } from '../../services/validation/validateKey.js';
 import { Keypair } from '@solana/web3.js';
 import bs58 from 'bs58';
-import { secureWalletStore } from '../../config/globals.js';
-import { start } from '../../services/websocket.service.js';
+import { start } from '../../services/websocket/websocket.service.js';
+import logger from '../../config/logger.js';
+import { initTrackedTokens, deleteTrackedTokens, getTrackedTokens } from '../../services/redis/trackedTokens.js';
+import { encrypt } from '../../core/utils/crypto.js';
+import { redisClient } from '../../config/redis.js';
 dotenv.config();
 
 export const loadWallet = async (req: Request, res: Response, next: NextFunction) => {
@@ -15,52 +17,54 @@ export const loadWallet = async (req: Request, res: Response, next: NextFunction
     const { key } = req.body;
 
     if (!key) {
+      logger.warn('loadWallet attempt with missing key');
       return res.status(400).json({ error: 'Missing key in body' });
     }
 
     if (!validateKey(key)) {
+      logger.warn('Attempted to load wallet with invalid key format');
       return res.status(400).json({ error: 'Invalid key format' });
     }
 
     const wallet = Keypair.fromSecretKey(bs58.decode(key)); //
     const pubKey = wallet.publicKey.toBase58();
+    const encryptedKey = encrypt(key);
 
-    // 1. Regenerate the session. This is async and takes a callback.
     await new Promise<void>((resolve, reject) => {
       req.session.regenerate((err) => {
         if (err) {
+          logger.error({ err, pubKey }, 'Failed to regenerate session');
           return reject(err);
         }
 
-        // 2. Assign data *inside* the callback to ensure it's on the new session
-        req.session.user = { pubKey }; //
+        req.session.user = { pubKey, encryptedKey: encryptedKey };
         resolve();
       });
     });
 
-    // 3. The rest of your logic remains the same
-    secureWalletStore.set(pubKey, wallet); //
-    userTrackedTokens.set(pubKey, {}); //
+    await initTrackedTokens(pubKey);
     await start(pubKey); //
+    logger.info({ pubKey }, 'Wallet loaded, session created, and websocket started');
 
     return res.status(200).json({ pubKey });
   } catch (err) {
     const error = err instanceof Error ? err.message : 'Unknown error';
-    console.error(error);
+    logger.error({ err }, `Server error during loadWallet: ${error}`);
     next(error);
   }
 };
 
 export const handleAmount = async (req: Request, res: Response) => {
+  const pubkey = req?.session?.user?.pubKey;
   try {
     let price: number;
-    price = await getSolPrice();
+    price = Number(await redisClient.get(SOL_PRICE_KEY));
 
     if (!price || price === 0) {
+      logger.warn({ pubkey }, 'Failed to get SOL Price in handleAmount');
       return res.status(400).json({ error: 'Failed to get SOL Price' });
     }
 
-    const pubkey = req?.session?.user?.pubKey;
     const data = await (await fetch(`https://lite-api.jup.ag/ultra/v1/balances/${pubkey}`)).json();
     const sol = data?.SOL?.uiAmount || 0;
     const wsol = data?.[solMint]?.uiAmount || 0;
@@ -74,18 +78,20 @@ export const handleAmount = async (req: Request, res: Response) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-
+    logger.error({ err, pubkey }, 'Failed to handleAmount');
     res.status(500).json({ error: 'Internal server error', details: message });
   }
 };
 
 export const handleLogout = async (req: Request, res: Response, next: NextFunction) => {
+  const pubkey = req.session.user?.pubKey;
+
   try {
-    const pubkey = req.session.user?.pubKey;
     if (!pubkey) {
+      logger.warn('Logout attempt with no session pubKey');
       return res.status(400).json({ error: 'Invalid or missing session ID' });
     }
-    userTrackedTokens.delete(pubkey);
+    await deleteTrackedTokens(pubkey);
 
     const cookieOptions = {
       path: '/',
@@ -97,26 +103,33 @@ export const handleLogout = async (req: Request, res: Response, next: NextFuncti
     // express-session destroy() takes a callback
     req.session.destroy((err) => {
       if (err) {
-        // If session destroy fails, pass error to central handler
+        logger.error({ err, pubkey }, 'Session destroy failed during logout');
         return next(err);
       }
-
-      // Clear the cookie and send response
-      res.clearCookie('sessionId', cookieOptions).status(200).json({ message: 'Logged out' });
+      logger.info({ pubkey }, 'User logged out and session destroyed');
+      res
+        .clearCookie('sessionId', cookieOptions)
+        .clearCookie('connect.sid', cookieOptions)
+        .status(200)
+        .json({ message: 'Logged out' });
     });
   } catch (err) {
+    logger.error({ err, pubkey }, 'Unhandled error during logout');
     next(err);
   }
 };
 
 export const getPortfolio = async (req: Request, res: Response) => {
+  const pubkey = req?.session?.user?.pubKey;
+
   try {
-    const pubkey = req?.session?.user?.pubKey;
     if (!pubkey) {
+      logger.warn('getPortfolio attempt with no session pubKey');
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const solPrice = await getSolPrice();
+    const solPrice = Number(await redisClient.get(SOL_PRICE_KEY));
+
     const balances = await (await fetch(`https://lite-api.jup.ag/ultra/v1/balances/${pubkey}`)).json();
 
     const portfolio = [];
@@ -129,7 +142,7 @@ export const getPortfolio = async (req: Request, res: Response) => {
       const balanceInfo = balances[mint];
       const tokenBalance = balanceInfo.uiAmount;
 
-      if (tokenBalance > 0) {
+      if (tokenBalance > 10) {
         const usdValueString = await totalOwned(mint, tokenBalance);
         const numericUsdValue = parseFloat(usdValueString);
 
@@ -147,25 +160,27 @@ export const getPortfolio = async (req: Request, res: Response) => {
       }
     }
 
-    console.log(portfolio);
+    logger.info(`Retrieved portfolio for wallet: ${pubkey}`);
 
     res.status(200).json({ portfolio, solPrice: solPrice });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-
+    logger.error({ err, pubkey }, `Failed to getPortfolio: ${message}`);
     res.status(500).json({ error: 'Internal server error', details: message });
   }
 };
 
 export const getSingleToken = async (req: Request, res: Response) => {
+  const pubkey = req.session.user?.pubKey;
+
   try {
     const { tokenMint, tokenBalance } = req.body as {
       tokenMint: string;
       tokenBalance: number;
     };
 
-    const pubkey = req.session.user?.pubKey;
     if (!pubkey) {
+      logger.warn('getSingleToken attempt with no session pubKey');
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
@@ -178,28 +193,31 @@ export const getSingleToken = async (req: Request, res: Response) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-
+    logger.error({ err, pubkey, body: req.body }, `Failed to getSingleToken: ${message}`);
     res.status(500).json({ error: 'Internal server error', details: message });
   }
 };
 
 export const fetchTokens = async (req: Request, res: Response) => {
+  const pubkey = req.session.user?.pubKey;
+
   try {
-    const pubkey = req.session.user?.pubKey;
     if (!pubkey) {
+      logger.debug('fetchTokens attempt with no session pubKey');
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const trackedTokens = userTrackedTokens.get(pubkey);
+    const trackedTokens = await getTrackedTokens(pubkey);
 
-    if (!trackedTokens) {
+    if (trackedTokens === null) {
+      logger.debug({ pubkey }, 'No tracked tokens found for user (null)');
       return res.status(200).send([]);
     }
 
     res.status(200).send(Object.values(trackedTokens));
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-
+    logger.error({ err, pubkey }, `Failed to fetchTokens: ${message}`);
     res.status(500).json({ error: 'Internal server error', details: message });
   }
 };

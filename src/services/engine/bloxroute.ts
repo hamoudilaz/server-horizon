@@ -2,10 +2,11 @@ import { VersionedTransaction, ComputeBudgetProgram, PublicKey } from '@solana/w
 import { request } from 'undici';
 import dotenv from 'dotenv';
 import { fetchWithTimeout, fetchWithTimeoutSwap, agent } from '../external/fetchTimer.js';
-import { jitoTipWallets, calculateFee, bloxrouteTipWallets } from '../../config/constants.js';
+import { jitoTipWallets, bloxrouteTipWallets } from '../../config/constants.js';
 import { sendTxResult, QuoteResponse, SwapResponse } from '../../core/types/interfaces.js';
 import { Keypair } from '@solana/web3.js';
-
+import logger from '../../config/logger.js';
+import { calculateFee } from '../../core/utils/calculateFee.js';
 dotenv.config();
 
 const randomWallet = bloxrouteTipWallets[Math.floor(Math.random() * bloxrouteTipWallets.length)];
@@ -27,13 +28,17 @@ export async function swapBloxroute(
   wallet: Keypair,
   pubKey: string
 ) {
+  const logContext = { pubKey, inputmint, outputMint, amount, service: 'bloxroute' };
   try {
-    if (!wallet || !pubKey) throw new Error('Failed to load wallet');
-
-    if (!swapApi || !BLOXROUTE_URL || !quoteApi) {
-      return { error: 'Configuration error: Missing Swap API URL' };
+    if (!wallet || !pubKey) {
+      logger.error({ pubKey }, 'Failed to load wallet for swapBloxroute');
+      throw new Error('Failed to load wallet');
     }
 
+    if (!swapApi || !BLOXROUTE_URL || !quoteApi || !AUTH_HEADER) {
+      logger.error('Configuration error: Missing Bloxroute or Jupiter API URL/Auth');
+      return { error: 'Configuration error: Missing Swap API URL' };
+    }
     const url = `${quoteApi}?inputMint=${inputmint}&outputMint=${outputMint}&amount=${amount}&slippageBps=${SlippageBps}`;
 
     let quote: QuoteResponse = {};
@@ -41,7 +46,7 @@ export async function swapBloxroute(
       try {
         const quoteRes = await fetchWithTimeout(url, 120);
         if (quoteRes && 'limit' in quoteRes) {
-          console.warn(`⚠️ Quote retry ${attempt}: rate limit active.`);
+          logger.warn({ attempt }, `Quote retry: rate limit active.`);
           quote = { error: quoteRes.limit };
           continue;
         }
@@ -49,18 +54,17 @@ export async function swapBloxroute(
         quote = (await quoteRes.json()) as QuoteResponse;
 
         if (!quote.error) break;
-        console.log(quote.error);
+        logger.warn({ error: quote.error }, 'Error in quote response');
       } catch {
-        console.warn(`⚠️ Quote retry ${attempt}: timeout or fetch error`);
+        logger.warn({ attempt }, `Quote retry: timeout or fetch error`);
       }
     }
 
     if (quote.error) {
-      console.error('Error getting quote:', quote.error);
-      return quote.error;
+      logger.error({ ...logContext, error: quote.error }, 'Error getting quote for swap after all retries');
+      return { error: quote.error };
     }
-
-    console.log('Requesting swap transaction...');
+    logger.info(`Requesting swap transaction...`);
 
     let swapTransaction;
     let unitLimit;
@@ -76,8 +80,8 @@ export async function swapBloxroute(
         });
 
         if (swapRes && 'limit' in swapRes) {
-          console.warn(`⚠️ Swap retry ${attempt}: Rate limit active.`);
-          continue; // Skip to the next attempt
+          logger.warn({ attempt }, `Swap retry: Rate limit active.`);
+          continue;
         }
 
         const swap = (await swapRes.json()) as SwapResponse;
@@ -85,18 +89,17 @@ export async function swapBloxroute(
         unitLimit = swap.computeUnitLimit;
 
         if (swapTransaction && unitLimit) break;
-
-        console.warn(`⚠️ Swap retry ${attempt}: no swapTransaction`);
-      } catch {
-        console.warn(`⚠️ Swap retry ${attempt}: timeout or fetch error`);
+        logger.warn(`Swap retry: no swapTransaction. Attempt: ${attempt}`);
+      } catch (err) {
+        logger.warn(`Swap retry: timeout or fetch error`);
       }
     }
 
     if (!swapTransaction || !unitLimit) {
+      logger.error('Failed to retrieve swap transaction after all retries');
       return { error: 'Retry getting swap transaction' };
     }
-
-    console.log('Signing...');
+    logger.info('Retrieved swap transaction, Signing transaction...');
 
     let baseFee = calculateFee(fee, unitLimit);
 
@@ -139,19 +142,21 @@ export async function swapBloxroute(
       dispatcher: agent,
     });
 
-    const sendResult: sendTxResult = (await sendResponse.json()) as sendTxResult;
+    const sendResult = (await sendResponse.json()) as sendTxResult;
     if (sendResult.error) {
-      console.error('Error sending transaction:', sendResult.error);
+      logger.error({ error: sendResult.error }, `Error sending transaction to Bloxroute`);
       return { error: sendResult.error.message };
     }
 
     if (!sendResult.signature) {
-      console.error('Error sending transaction:', sendResult);
+      logger.error({ sendResult }, 'Signature missing from bloxroute response');
       return { error: 'signature missing from bloxroute' };
     }
-    console.log(`BLOXROUTE: https://solscan.io/tx/${sendResult.signature}`);
+    logger.info(`Successful swap in BLOXROUTE: https://solscan.io/tx/${sendResult.signature}`);
+
     return { result: sendResult.signature };
   } catch (err) {
+    logger.error({ err }, 'Unhandled exception in swapBloxroute');
     return err;
   }
 }

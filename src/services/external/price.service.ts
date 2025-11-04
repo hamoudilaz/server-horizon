@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { solMint } from '../../config/constants.js';
-import { BirdeyePriceResponse, TokenLogoInfo, HeliusAssetResponse, JupPriceData } from '../../core/types/interfaces.js';
+import logger from '../../config/logger.js';
+import { BirdeyePriceResponse, TokenLogoInfo, HeliusAssetResponse, JupPriceData } from './price.service.types.js';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ export async function totalOwned(mint: string, mytokens: number): Promise<string
     const { data }: BirdeyePriceResponse = await res.json();
 
     if (!data?.value) {
+      logger.warn({ mint }, 'Birdeye price not found, using fallback');
       tokenPrice = await getTokenPriceFallback(mint);
     } else {
       tokenPrice = data.value;
@@ -29,21 +31,26 @@ export async function totalOwned(mint: string, mytokens: number): Promise<string
     return (mytokens * tokenPrice).toFixed(5);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-
-    console.error('Error fetching token price:', err);
+    logger.error({ err, mint }, `Error fetching token price: ${message}`);
     throw new Error(message);
   }
 }
 
 export async function getTokenPriceFallback(mint: string): Promise<number> {
   let tokenPrice: number;
-  const priceResponse = await fetch(`https://lite-api.jup.ag/price/v3?ids=${mint}`);
-  const priceData: JupPriceData = await priceResponse.json();
+  try {
+    const priceResponse = await fetch(`https://lite-api.jup.ag/price/v3?ids=${mint}`);
+    const priceData: JupPriceData = await priceResponse.json();
 
-  if (!priceData || !priceData[mint] || !priceData[mint]?.usdPrice) {
+    if (!priceData || !priceData[mint] || !priceData[mint]?.usdPrice) {
+      logger.warn({ mint }, 'Jupiter price not found, using GeckoTerminal fallback');
+      tokenPrice = await getGeckoTerminalPrice(mint);
+    } else {
+      tokenPrice = priceData[mint]?.usdPrice;
+    }
+  } catch (err) {
+    logger.warn({ err, mint }, 'Jupiter price fetch failed, using GeckoTerminal fallback');
     tokenPrice = await getGeckoTerminalPrice(mint);
-  } else {
-    tokenPrice = priceData[mint]?.usdPrice;
   }
 
   return tokenPrice;
@@ -59,10 +66,13 @@ async function getGeckoTerminalPrice(mint: string): Promise<number> {
     });
     const { data } = await res.json();
     const raw = data?.attributes?.token_prices?.[mint];
-    if (!raw) return 0;
+    if (!raw) {
+      logger.error({ mint }, 'Failed to get price from GeckoTerminal');
+      return 0;
+    }
     return Number(Number(raw).toFixed(10));
   } catch (err) {
-    console.error(err);
+    logger.error({ err, mint }, `Error fetching token price from GeckoTerminal`);
     return 0;
   }
 }
@@ -91,10 +101,14 @@ export async function tokenLogo(mint: string): Promise<TokenLogoInfo | null> {
       const content = data?.result?.content;
 
       if (!content || !content.files || !content.files[0]) {
+        logger.warn({ mint }, 'Helius logo not found, falling back to Jupiter');
         const res = await fetch(`https://lite-api.jup.ag/tokens/v1/token/${mint}`);
 
         const { logoURI, symbol, decimals } = await res.json();
-        if (!logoURI || !symbol || typeof decimals !== 'number') return null;
+        if (!logoURI || !symbol || typeof decimals !== 'number') {
+          logger.error({ mint }, 'Failed to get logo from Jupiter fallback');
+          return null;
+        }
         return { logoURI, symbol, decimals };
       }
 
@@ -106,9 +120,9 @@ export async function tokenLogo(mint: string): Promise<TokenLogoInfo | null> {
     } else {
       return null;
     }
-  } catch (e) {
-    console.error('Error retrieving token logo:', e);
-    throw e;
+  } catch (err) {
+    logger.error({ err, mint }, `Error fetching token logo`);
+    throw err;
   }
 }
 
@@ -117,11 +131,13 @@ export async function getSolPrice(): Promise<number> {
     const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
     const pair = await res.json();
     if (!pair.solana) {
+      logger.warn('CoinGecko SOL price fetch failed, falling back...');
       return await getSolPriceFallback();
     }
 
     return Number(pair.solana.usd);
-  } catch {
+  } catch (err) {
+    logger.warn({ err }, 'Failed to get SOL price, returning 0.');
     return 0;
   }
 }
@@ -130,8 +146,13 @@ export async function getSolPriceFallback(): Promise<number> {
   try {
     const res = await fetch('https://api.coinbase.com/v2/prices/SOL-USD/spot');
     const pair = await res.json();
+    if (!pair?.data?.amount) {
+      logger.error('All SOL price fallbacks (Coinbase) failed');
+      return 0;
+    }
     return Number(pair?.data?.amount);
-  } catch {
+  } catch (err) {
+    logger.error({ err }, 'All SOL price fallbacks (Coinbase) failed');
     return 0;
   }
 }

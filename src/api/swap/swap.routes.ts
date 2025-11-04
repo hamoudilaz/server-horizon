@@ -1,7 +1,7 @@
 // src/api/swap/swap.routes.ts
 import { Router } from 'express';
 import { buyHandler, sellHandler } from './swap.controller.js';
-import { validateSession } from './swap.middleware.js';
+import { validateSession } from '../../core/middlewares/swap.middleware.js';
 
 const router = Router();
 
