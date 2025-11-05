@@ -1,18 +1,19 @@
 import { tokenLogo, getTotalOwnedTokens } from '../../services/external/price.service.js';
-import { SOL_PRICE_KEY, solMint } from '../../config/constants.js';
+import { solMint } from '../../config/constants.js';
 import { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import { validateKey } from '../../services/validation/validateKey.js';
 import { Keypair } from '@solana/web3.js';
 import bs58 from 'bs58';
-import { start } from '../../services/websocket/websocket.service.js';
 import logger from '../../config/logger.js';
-import { initTrackedTokens, deleteTrackedTokens, getTrackedTokens } from '../../services/redis/trackedTokens.js';
+import {
+  initTrackedTokens,
+  deleteTrackedTokens,
+  getTrackedTokens,
+  getSolPriceFromRedis,
+} from '../../services/redis/trackedTokens.js';
 import { encrypt } from '../../core/utils/crypto.js';
-import { redisClient } from '../../config/redis.js';
 dotenv.config();
-
-const ACTIVE_WALLETS_KEY = 'active_wallets';
 
 export const loadWallet = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -46,9 +47,6 @@ export const loadWallet = async (req: Request, res: Response, next: NextFunction
 
     await initTrackedTokens(pubKey);
 
-    await redisClient.sAdd(ACTIVE_WALLETS_KEY, pubKey);
-
-    await start(pubKey); //
     logger.info({ pubKey }, 'Wallet loaded, session created, and websocket started');
 
     return res.status(200).json({ pubKey });
@@ -62,8 +60,7 @@ export const loadWallet = async (req: Request, res: Response, next: NextFunction
 export const handleAmount = async (req: Request, res: Response) => {
   const pubkey = req?.session?.user?.pubKey;
   try {
-    let price: number;
-    price = Number(await redisClient.get(SOL_PRICE_KEY));
+    const price = await getSolPriceFromRedis();
 
     if (!price || price === 0) {
       logger.warn({ pubkey }, 'Failed to get SOL Price in handleAmount');
@@ -96,10 +93,6 @@ export const handleLogout = async (req: Request, res: Response, next: NextFuncti
       logger.warn('Logout attempt with no session pubKey');
       return res.status(400).json({ error: 'Invalid or missing session ID' });
     }
-
-    // 👇 --- ADD THIS LINE ---
-    await redisClient.sRem(ACTIVE_WALLETS_KEY, pubKey);
-    // 👆 --- THIS IS THE NEW LOGIC ---
 
     await deleteTrackedTokens(pubKey);
 
@@ -137,7 +130,7 @@ export const getPortfolio = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const solPrice = Number(await redisClient.get(SOL_PRICE_KEY));
+    const solPrice = await getSolPriceFromRedis();
 
     const balances = await (await fetch(`https://lite-api.jup.ag/ultra/v1/balances/${pubkey}`)).json();
 
@@ -150,8 +143,8 @@ export const getPortfolio = async (req: Request, res: Response) => {
       const tokenBalance = balanceInfo.uiAmount;
 
       if (tokenBalance > 10) {
-        const usdValueString = await getTotalOwnedTokens(mint, tokenBalance);
-        const usdValue = parseFloat(usdValueString);
+        const usdValue = await getTotalOwnedTokens(mint, tokenBalance);
+        if (usdValue === 0) continue;
 
         // Only include tokens with a value greater than $1
         if (usdValue > 1) {
@@ -159,7 +152,7 @@ export const getPortfolio = async (req: Request, res: Response) => {
           portfolio.push({
             tokenMint: mint,
             tokenBalance: tokenBalance,
-            usdValue: usdValue.toFixed(4),
+            usdValue: usdValue,
             logoURI: logoData?.logoURI,
             symbol: logoData?.symbol,
           });
@@ -168,8 +161,18 @@ export const getPortfolio = async (req: Request, res: Response) => {
     }
 
     logger.info(`Retrieved portfolio for wallet: ${pubkey}`);
+    // const trackedTokens = await getTrackedTokens(pubkey);
 
-    res.status(200).json({ portfolio, solPrice: solPrice });
+    //   if (trackedTokens) {
+    //   for (const [trackedMint, token] of Object.entries(trackedTokens)) {
+    //     if (trackedMint !== mint) {
+    //       console.log(`Removing wrongly tracked token: ${trackedMint}`);
+    //       await removeWronglyTrackedToken(pubkey, mint, trackedTokens);
+    //     }
+    //   }
+    // }
+
+    res.status(200).json({ portfolio, solPrice });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     logger.error({ err, pubkey }, `Failed to getPortfolio: ${message}`);
@@ -191,12 +194,11 @@ export const getSingleToken = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const usdValueString = await getTotalOwnedTokens(tokenMint, tokenBalance);
-    const usdValue = parseFloat(usdValueString);
+    const usdValue = await getTotalOwnedTokens(tokenMint, tokenBalance);
 
     res.status(200).json({
       tokenMint,
-      usdValue: usdValue.toFixed(5),
+      usdValue: usdValue,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

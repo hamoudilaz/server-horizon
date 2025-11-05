@@ -4,19 +4,24 @@ import { BroadcastedToken } from '../../core/types/interfaces.js';
 import logger from '../../config/logger.js';
 
 type TokenMap = { [mint: string]: BroadcastedToken };
+
 const TOKEN_KEY_PREFIX = 'tokens:';
+const ACTIVE_WALLETS_KEY = 'active_wallets';
+const SOL_PRICE_KEY = 'solPrice';
 
 /**
  * Initializes the token tracking for a user (on login).
  */
 export async function initTrackedTokens(pubKey: string): Promise<void> {
   await redisClient.set(`${TOKEN_KEY_PREFIX}${pubKey}`, JSON.stringify({}));
+  await redisClient.sAdd(ACTIVE_WALLETS_KEY, pubKey);
 }
 
 /**
  * Deletes all tracked tokens for a user (on logout).
  */
 export async function deleteTrackedTokens(pubKey: string): Promise<void> {
+  await redisClient.sRem(ACTIVE_WALLETS_KEY, pubKey);
   await redisClient.del(`${TOKEN_KEY_PREFIX}${pubKey}`);
 }
 
@@ -27,7 +32,7 @@ export async function deleteTrackedTokens(pubKey: string): Promise<void> {
 export async function getTrackedTokens(pubKey: string): Promise<TokenMap | null> {
   try {
     const data = await redisClient.get(`${TOKEN_KEY_PREFIX}${pubKey}`);
-    // Return parsed data if exists, otherwise null
+
     return data ? (JSON.parse(data) as TokenMap) : null;
   } catch (err) {
     logger.error({ err, pubKey }, 'Failed to getTrackedTokens from Redis');
@@ -35,31 +40,19 @@ export async function getTrackedTokens(pubKey: string): Promise<TokenMap | null>
   }
 }
 
-/**
- * Updates or adds a single token for a user.
- * This is a read-modify-write operation. For this app's model
- * (one user, one log stream), this is perfectly safe.
- */
-export async function updateTrackedToken(pubKey: string, mint: string, tokenData: BroadcastedToken): Promise<void> {
-  try {
-    const tokens = (await getTrackedTokens(pubKey)) ?? {};
-    tokens[mint] = tokenData;
-    await redisClient.set(`${TOKEN_KEY_PREFIX}${pubKey}`, JSON.stringify(tokens));
-  } catch (err) {
-    logger.error({ err, pubKey, mint }, 'Failed to updateTrackedToken in Redis');
-  }
+export async function getSolPriceFromRedis(): Promise<number | null> {
+  return Number(await redisClient.get(SOL_PRICE_KEY));
 }
 
 /**
  * Removes a single token from a user's map.
  */
-export async function removeTrackedToken(pubKey: string, mint: string): Promise<void> {
-  try {
-    const tokens = await getTrackedTokens(pubKey);
-    if (!tokens) return;
-    delete tokens[mint];
-    await redisClient.set(`${TOKEN_KEY_PREFIX}${pubKey}`, JSON.stringify(tokens));
-  } catch (err) {
-    logger.error({ err, pubKey, mint }, 'Failed to removeTrackedToken in Redis');
-  }
-}
+// export async function removeWronglyTrackedToken(pubKey: string, mint: string, trackedTokens: TokenMap): Promise<void> {
+//   try {
+//     delete trackedTokens[mint];
+
+//     await redisClient.set(`tokens:${pubKey}`, JSON.stringify(trackedTokens));
+//   } catch (err) {
+//     logger.error({ err, pubKey, mint }, 'Failed to removeTrackedToken in Redis');
+//   }
+// }

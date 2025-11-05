@@ -1,10 +1,11 @@
 import { tokenLogo, getTokenPriceFallback } from '../../services/external/price.service.js';
 import { setDemoAmount, getDemoAmount } from './globals.js';
-import { DEFAULT_IMG, SOL_PRICE_KEY } from '../../config/constants.js';
+import { DEFAULT_IMG } from '../../config/constants.js';
 import { SimulatedToken, BroadcastMessage } from '../../core/types/interfaces.js';
 import { DemoSessionTypes } from './demo.types.js';
 import logger from '../../config/logger.js';
 import { redisClient } from '../../config/redis.js';
+import { getSolPriceFromRedis } from '../../services/redis/trackedTokens.js';
 
 export async function simulateBuy(
   session: DemoSessionTypes,
@@ -19,7 +20,12 @@ export async function simulateBuy(
     }
     if (!data.tokensDisplay) data.tokensDisplay = {};
 
-    const solPrice = Number(await redisClient.get(SOL_PRICE_KEY));
+    const solPrice = await getSolPriceFromRedis();
+
+    if (!solPrice) {
+      logger.warn('SOL price not found in Redis during simulateBuy');
+      return { error: 'SOL price unavailable. Please try again shortly.' };
+    }
 
     const costInUsd = solToSpend * solPrice;
 

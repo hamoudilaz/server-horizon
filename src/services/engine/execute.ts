@@ -89,7 +89,7 @@ export async function swap(
         if (swapTransaction && unitLimit) break;
 
         logger.warn(`Swap retry: no swapTransaction. Attempt: ${attempt}`);
-      } catch (err) {
+      } catch {
         logger.warn(`Swap retry: timeout or fetch error`);
       }
     }

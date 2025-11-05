@@ -1,6 +1,8 @@
+import bs58 from 'bs58';
 // src/core/utils/crypto.ts
 import crypto from 'crypto';
 import logger from '../../config/logger.js';
+import { Keypair } from '@solana/web3.js';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
@@ -39,7 +41,7 @@ export function encrypt(text: string): string {
  * Decrypts an AES-256-GCM encrypted string.
  * Expects "iv:authTag:encryptedData" format.
  */
-export function decrypt(encryptedText: string): string {
+export function decrypt(encryptedText: string): Keypair {
   try {
     const parts = encryptedText.split(':');
     if (parts.length !== 3) {
@@ -58,8 +60,9 @@ export function decrypt(encryptedText: string): string {
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(authTag);
 
-    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
-    return decrypted.toString('utf8');
+    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+    const wallet = Keypair.fromSecretKey(bs58.decode(decrypted));
+    return wallet;
   } catch (err) {
     // This will fail if the key is wrong or data is tampered with
     logger.error({ err }, 'Decryption failed. Key may be wrong or data corrupted.');

@@ -1,6 +1,4 @@
 // Redis cache
-export const SOL_PRICE_KEY = 'solPrice';
-export const SOL_PRICE_TTL = 300;
 
 export const solMint = 'So11111111111111111111111111111111111111112';
 

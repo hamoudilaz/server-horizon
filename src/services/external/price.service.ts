@@ -6,7 +6,7 @@ import { BirdeyePriceResponse, TokenLogoInfo, HeliusAssetResponse, JupPriceData 
 dotenv.config();
 
 // Get Balance
-export async function getTotalOwnedTokens(mint: string, mytokens: number): Promise<string> {
+export async function getTotalOwnedTokens(mint: string, mytokens: number): Promise<number> {
   try {
     let tokenPrice: number;
 
@@ -28,7 +28,8 @@ export async function getTotalOwnedTokens(mint: string, mytokens: number): Promi
       tokenPrice = data.value;
     }
 
-    return (mytokens * tokenPrice).toFixed(4);
+    const totalvalue = (mytokens * tokenPrice).toFixed(4);
+    return Number(totalvalue);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     logger.error({ err, mint }, `Error fetching token price: ${message}`);
@@ -53,7 +54,6 @@ export async function getTokenPriceFallback(mint: string): Promise<number> {
     logger.warn({ err, mint }, 'Jupiter price fetch failed, using GeckoTerminal fallback');
     tokenPrice = await getGeckoTerminalPrice(mint);
   }
-
   return tokenPrice;
 }
 
@@ -68,10 +68,12 @@ async function getGeckoTerminalPrice(mint: string): Promise<number> {
     const { data } = await res.json();
     const raw = data?.attributes?.token_prices?.[mint];
     if (!raw) {
-      logger.error({ mint }, 'Failed to get price from GeckoTerminal');
+      logger.error({ mint }, 'Failed to get price from GeckoTerminal last fallback, skipping token');
       return 0;
     }
-    return Number(Number(raw).toFixed(10));
+    const tokenPrice = Number(Number(raw).toFixed(10));
+
+    return tokenPrice;
   } catch (err) {
     logger.error({ err, mint }, `Error fetching token price from GeckoTerminal`);
     return 0;

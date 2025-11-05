@@ -6,10 +6,7 @@ import { validateBuyBody, validateSellBody } from '../../services/validation/val
 import { ExecuteResult, validBuyBody, validSellBody } from '../../core/types/interfaces.js';
 import { swapBloxroute } from '../../services/engine/bloxroute.js';
 import logger from '../../config/logger.js';
-import { Keypair } from '@solana/web3.js';
-import bs58 from 'bs58';
 import { decrypt } from '../../core/utils/crypto.js';
-import { removeTrackedToken } from '../../services/redis/trackedTokens.js';
 
 export const buyHandler = async (req: Request, res: Response) => {
   const start = Date.now();
@@ -30,17 +27,25 @@ export const buyHandler = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Not authenticated or key missing' });
     }
 
-    const privateKey = decrypt(req.session.user.encryptedKey);
-    const wallet = Keypair.fromSecretKey(bs58.decode(privateKey));
+    const walletKeyPair = decrypt(req.session.user.encryptedKey);
 
-    if (!wallet) {
+    if (!walletKeyPair) {
       logger.error({ pubKey }, 'Wallet could not be decoded from session');
       return res.status(403).json({ error: 'Wallet could not be decoded' });
     }
 
     let execute = node ? swapBloxroute : swap;
 
-    let txid = (await execute(solMint, mint, buyAmount, slippage, fee, jitoFee, wallet, pubKey)) as ExecuteResult;
+    let txid = (await execute(
+      solMint,
+      mint,
+      buyAmount,
+      slippage,
+      fee,
+      jitoFee,
+      walletKeyPair,
+      pubKey
+    )) as ExecuteResult;
 
     if (txid?.limit) {
       logger.warn({ pubKey, mint, buyAmount }, 'Swap service returned rate limit');
@@ -62,12 +67,11 @@ export const buyHandler = async (req: Request, res: Response) => {
     }
 
     const end = Date.now() - start;
-    logger.info({ pubKey, mint, buyAmount, tx: txid.result, duration: end, node }, 'Buy swap successful');
+    logger.info(`Buy swap successful, Total time: ${end}`);
 
     return res.status(200).json({ message: `https://solscan.io/tx/${txid.result}`, end });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-
     logger.error({ err, pubKey }, `Unhandled error in buyHandler: ${message}`);
     return res.status(500).json({
       status: '500',
@@ -96,10 +100,9 @@ export const sellHandler = async (req: Request, res: Response) => {
       return res.status(401).send({ error: 'Not authenticated or key missing' });
     }
 
-    const privateKey = decrypt(req.session.user.encryptedKey);
-    const wallet = Keypair.fromSecretKey(bs58.decode(privateKey));
+    const walletKeyPair = decrypt(req.session.user.encryptedKey);
 
-    if (!wallet) {
+    if (!walletKeyPair) {
       logger.error({ pubKey }, 'Wallet could not be decoded from session');
       return res.status(403).send({ error: 'Wallet could not be decoded' });
     }
@@ -108,7 +111,6 @@ export const sellHandler = async (req: Request, res: Response) => {
 
     if (typeof ownedAmount !== 'number' || isNaN(ownedAmount) || ownedAmount <= 0) {
       logger.warn({ pubKey, outputMint, ownedAmount }, 'Sell attempt with no tokens');
-      await removeTrackedToken(pubKey, outputMint);
       return res.status(400).send({ error: 'You dont have any tokens of this mint' });
     }
     const totalSellAmount = Math.floor((ownedAmount * amount) / 100);
@@ -122,7 +124,7 @@ export const sellHandler = async (req: Request, res: Response) => {
       slippage,
       fee,
       jitoFee,
-      wallet,
+      walletKeyPair,
       pubKey
     )) as ExecuteResult;
 
@@ -144,7 +146,8 @@ export const sellHandler = async (req: Request, res: Response) => {
       logger.warn({ pubKey, outputMint, txid }, 'Sell execution returned no result or signature');
       return res.status(400).send({ status: '400', error: `${txid}` });
     }
-    logger.info({ pubKey, outputMint, amount, tx: txid.result, duration: end, node }, 'Sell swap successful');
+
+    logger.info(`Sell swap successful, Total time: ${end}`);
 
     return res.status(200).send({ message: `https://solscan.io/tx/${txid.result}`, end });
   } catch (err) {

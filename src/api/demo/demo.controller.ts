@@ -3,8 +3,7 @@ import { getDemoAmount } from './globals.js';
 import { simulateBuy, simulateSell } from './simulate.js';
 import { Request, Response, NextFunction } from 'express';
 import logger from '../../config/logger.js';
-import { SOL_PRICE_KEY } from '../../config/constants.js';
-import { redisClient } from '../../config/redis.js';
+import { getSolPriceFromRedis } from '../../services/redis/trackedTokens.js';
 
 // BUY handler
 export const demoBuyhandler = async (req: Request, res: Response) => {
@@ -130,7 +129,11 @@ export async function getSessionState(req: Request, res: Response) {
       return res.status(401).json({ error: 'Invalid demo session. Please start a new demo.' });
     }
 
-    const solPrice = Number(await redisClient.get(SOL_PRICE_KEY));
+    const solPrice = await getSolPriceFromRedis();
+    if (!solPrice) {
+      logger.warn('SOL price not found in Redis during getSessionState');
+      return res.status(503).json({ error: 'SOL price unavailable. Please try again shortly.' });
+    }
 
     let sol = Number((data.currentUsd / solPrice).toFixed(4));
 
