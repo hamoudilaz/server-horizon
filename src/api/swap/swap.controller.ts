@@ -6,9 +6,10 @@ import { validateBuyBody, validateSellBody } from '../../services/validation/val
 import { ExecuteResult, validBuyBody, validSellBody } from '../../core/types/interfaces.js';
 import { swapBloxroute } from '../../services/engine/bloxroute.js';
 import logger from '../../config/logger.js';
-import { Keypair } from '@solana/web3.js'; // 👈 --- NEW IMPORT ---
-import bs58 from 'bs58'; // 👈 --- NEW IMPORT ---
+import { Keypair } from '@solana/web3.js';
+import bs58 from 'bs58';
 import { decrypt } from '../../core/utils/crypto.js';
+import { removeTrackedToken } from '../../services/redis/trackedTokens.js';
 
 export const buyHandler = async (req: Request, res: Response) => {
   const start = Date.now();
@@ -107,6 +108,7 @@ export const sellHandler = async (req: Request, res: Response) => {
 
     if (typeof ownedAmount !== 'number' || isNaN(ownedAmount) || ownedAmount <= 0) {
       logger.warn({ pubKey, outputMint, ownedAmount }, 'Sell attempt with no tokens');
+      await removeTrackedToken(pubKey, outputMint);
       return res.status(400).send({ error: 'You dont have any tokens of this mint' });
     }
     const totalSellAmount = Math.floor((ownedAmount * amount) / 100);

@@ -6,6 +6,7 @@ import logger from '../../config/logger.js';
 import { SOL_PRICE_KEY } from '../../config/constants.js';
 import { redisClient } from '../../config/redis.js';
 
+// BUY handler
 export const demoBuyhandler = async (req: Request, res: Response) => {
   const start = Date.now();
   const session = req.session.demo;
@@ -26,7 +27,7 @@ export const demoBuyhandler = async (req: Request, res: Response) => {
     const txid = await simulateBuy(session, mint, buyAmount);
 
     if (!txid || txid.error) {
-      logger.warn({ session, mint, error: txid?.error }, 'Demo buy simulation failed');
+      logger.warn({ error: txid?.error }, 'Demo buy simulation failed');
       return res.status(400).json({ error: txid?.error || 'simulation error' });
     }
 
@@ -44,6 +45,7 @@ export const demoBuyhandler = async (req: Request, res: Response) => {
   }
 };
 
+// SELL handler
 export const demoSellHandler = async (req: Request, res: Response) => {
   const time = Date.now();
   const session = req.session.demo;
@@ -91,6 +93,7 @@ export const demoSellHandler = async (req: Request, res: Response) => {
   }
 };
 
+// Intializer
 export const startDemo = async (req: Request, res: Response) => {
   try {
     const { amount } = req.body;
@@ -153,6 +156,7 @@ export async function getSessionState(req: Request, res: Response) {
   }
 }
 
+// Resetter
 export const resetDemo = async (req: Request, res: Response, next: NextFunction) => {
   const cookieOptions = {
     path: '/',

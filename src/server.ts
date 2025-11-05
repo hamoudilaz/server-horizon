@@ -4,9 +4,11 @@ import app from './app.js';
 import logger from './config/logger.js';
 import { redisClient, pubSubClient } from './config/redis.js';
 import { setupWebSocket } from './services/websocket/websocket.setup.js';
+import { initializeCacheFunctions } from './services/redis/cache/index.js';
 
 const start = async () => {
   const port = process.env.PORT || 3000;
+  initializeCacheFunctions();
 
   const server = http.createServer(app);
 

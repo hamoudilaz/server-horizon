@@ -1,4 +1,4 @@
-import { tokenLogo, totalOwned } from '../../services/external/price.service.js';
+import { tokenLogo, getTotalOwnedTokens } from '../../services/external/price.service.js';
 import { SOL_PRICE_KEY, solMint } from '../../config/constants.js';
 import { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
@@ -11,6 +11,8 @@ import { initTrackedTokens, deleteTrackedTokens, getTrackedTokens } from '../../
 import { encrypt } from '../../core/utils/crypto.js';
 import { redisClient } from '../../config/redis.js';
 dotenv.config();
+
+const ACTIVE_WALLETS_KEY = 'active_wallets';
 
 export const loadWallet = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -43,6 +45,9 @@ export const loadWallet = async (req: Request, res: Response, next: NextFunction
     });
 
     await initTrackedTokens(pubKey);
+
+    await redisClient.sAdd(ACTIVE_WALLETS_KEY, pubKey);
+
     await start(pubKey); //
     logger.info({ pubKey }, 'Wallet loaded, session created, and websocket started');
 
@@ -84,14 +89,19 @@ export const handleAmount = async (req: Request, res: Response) => {
 };
 
 export const handleLogout = async (req: Request, res: Response, next: NextFunction) => {
-  const pubkey = req.session.user?.pubKey;
+  const pubKey = req.session.user?.pubKey;
 
   try {
-    if (!pubkey) {
+    if (!pubKey) {
       logger.warn('Logout attempt with no session pubKey');
       return res.status(400).json({ error: 'Invalid or missing session ID' });
     }
-    await deleteTrackedTokens(pubkey);
+
+    // 👇 --- ADD THIS LINE ---
+    await redisClient.sRem(ACTIVE_WALLETS_KEY, pubKey);
+    // 👆 --- THIS IS THE NEW LOGIC ---
+
+    await deleteTrackedTokens(pubKey);
 
     const cookieOptions = {
       path: '/',
@@ -100,13 +110,12 @@ export const handleLogout = async (req: Request, res: Response, next: NextFuncti
       sameSite: process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const),
     };
 
-    // express-session destroy() takes a callback
     req.session.destroy((err) => {
       if (err) {
-        logger.error({ err, pubkey }, 'Session destroy failed during logout');
+        logger.error({ err, pubKey }, 'Session destroy failed during logout');
         return next(err);
       }
-      logger.info({ pubkey }, 'User logged out and session destroyed');
+      logger.info({ pubKey }, 'User logged out and session destroyed');
       res
         .clearCookie('sessionId', cookieOptions)
         .clearCookie('connect.sid', cookieOptions)
@@ -114,7 +123,7 @@ export const handleLogout = async (req: Request, res: Response, next: NextFuncti
         .json({ message: 'Logged out' });
     });
   } catch (err) {
-    logger.error({ err, pubkey }, 'Unhandled error during logout');
+    logger.error({ err, pubKey }, 'Unhandled error during logout');
     next(err);
   }
 };
@@ -135,24 +144,22 @@ export const getPortfolio = async (req: Request, res: Response) => {
     const portfolio = [];
 
     for (const mint in balances) {
-      // Skip the native SOL balance provided by the Jupiter API.
-      // wSOL (solMint) will be handled like any other SPL token.
       if (mint === solMint) continue;
 
       const balanceInfo = balances[mint];
       const tokenBalance = balanceInfo.uiAmount;
 
       if (tokenBalance > 10) {
-        const usdValueString = await totalOwned(mint, tokenBalance);
-        const numericUsdValue = parseFloat(usdValueString);
+        const usdValueString = await getTotalOwnedTokens(mint, tokenBalance);
+        const usdValue = parseFloat(usdValueString);
 
         // Only include tokens with a value greater than $1
-        if (numericUsdValue > 1) {
+        if (usdValue > 1) {
           const logoData = await tokenLogo(mint);
           portfolio.push({
             tokenMint: mint,
             tokenBalance: tokenBalance,
-            usdValue: numericUsdValue.toFixed(4),
+            usdValue: usdValue.toFixed(4),
             logoURI: logoData?.logoURI,
             symbol: logoData?.symbol,
           });
@@ -184,12 +191,12 @@ export const getSingleToken = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const usdValueString = await totalOwned(tokenMint, tokenBalance);
-    const numericUsdValue = parseFloat(usdValueString);
+    const usdValueString = await getTotalOwnedTokens(tokenMint, tokenBalance);
+    const usdValue = parseFloat(usdValueString);
 
     res.status(200).json({
       tokenMint,
-      usdValue: numericUsdValue.toFixed(5),
+      usdValue: usdValue.toFixed(5),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

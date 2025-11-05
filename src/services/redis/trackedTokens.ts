@@ -56,7 +56,7 @@ export async function updateTrackedToken(pubKey: string, mint: string, tokenData
 export async function removeTrackedToken(pubKey: string, mint: string): Promise<void> {
   try {
     const tokens = await getTrackedTokens(pubKey);
-    if (!tokens) return; // Nothing to remove from
+    if (!tokens) return;
     delete tokens[mint];
     await redisClient.set(`${TOKEN_KEY_PREFIX}${pubKey}`, JSON.stringify(tokens));
   } catch (err) {

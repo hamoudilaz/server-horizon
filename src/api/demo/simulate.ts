@@ -82,7 +82,7 @@ export async function simulateBuy(
 export async function simulateSell(
   session: DemoSessionTypes,
   mint: string,
-  totalOwned: number,
+  tokenAmount: number,
   sellPercentage: number
 ): Promise<{ result?: string; error?: string } | void> {
   try {
@@ -98,7 +98,7 @@ export async function simulateSell(
       return { error: 'Failed to fetch token price' };
     }
 
-    const soldAmount = totalOwned * (sellPercentage / 100);
+    const soldAmount = tokenAmount * (sellPercentage / 100);
     if (!isFinite(soldAmount)) {
       delete data.tokensDisplay[mint];
       await broadcastToClients({ tokenMint: mint, removed: true });
@@ -145,7 +145,7 @@ export async function simulateSell(
     // sessions.set(session, data);
     return { result: 'SIMULATED_' + Date.now() };
   } catch (err) {
-    logger.error({ err, mint, totalOwned, sellPercentage }, `Simulation Sell Error`);
+    logger.error({ err, mint, tokenAmount, sellPercentage }, `Simulation Sell Error`);
     const message = err instanceof Error ? err.message : String(err);
     return { error: message };
   }

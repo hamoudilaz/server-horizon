@@ -6,7 +6,7 @@ import { BirdeyePriceResponse, TokenLogoInfo, HeliusAssetResponse, JupPriceData 
 dotenv.config();
 
 // Get Balance
-export async function totalOwned(mint: string, mytokens: number): Promise<string> {
+export async function getTotalOwnedTokens(mint: string, mytokens: number): Promise<string> {
   try {
     let tokenPrice: number;
 
@@ -28,7 +28,7 @@ export async function totalOwned(mint: string, mytokens: number): Promise<string
       tokenPrice = data.value;
     }
 
-    return (mytokens * tokenPrice).toFixed(5);
+    return (mytokens * tokenPrice).toFixed(4);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     logger.error({ err, mint }, `Error fetching token price: ${message}`);
@@ -36,6 +36,7 @@ export async function totalOwned(mint: string, mytokens: number): Promise<string
   }
 }
 
+// TOKEN PRICE FETCHERS
 export async function getTokenPriceFallback(mint: string): Promise<number> {
   let tokenPrice: number;
   try {
@@ -126,6 +127,7 @@ export async function tokenLogo(mint: string): Promise<TokenLogoInfo | null> {
   }
 }
 
+// SOL PRICE FETCHERS
 export async function getSolPrice(): Promise<number> {
   try {
     const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');

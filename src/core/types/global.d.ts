@@ -24,7 +24,3 @@ declare global {
     }
   }
 }
-
-// You must add "ts-patch" or a similar solution if you get errors
-// about augmenting modules. For a simpler start, you can just
-// augment the Request object and trust req.session will exist.
