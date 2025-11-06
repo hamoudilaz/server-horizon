@@ -47,12 +47,12 @@ export async function getSolPriceFromRedis(): Promise<number | null> {
 /**
  * Removes a single token from a user's map.
  */
-// export async function removeWronglyTrackedToken(pubKey: string, mint: string, trackedTokens: TokenMap): Promise<void> {
-//   try {
-//     delete trackedTokens[mint];
+export async function removeWronglyTrackedToken(pubKey: string, mint: string, trackedTokens: TokenMap): Promise<void> {
+  try {
+    delete trackedTokens[mint];
 
-//     await redisClient.set(`tokens:${pubKey}`, JSON.stringify(trackedTokens));
-//   } catch (err) {
-//     logger.error({ err, pubKey, mint }, 'Failed to removeTrackedToken in Redis');
-//   }
-// }
+    await redisClient.set(`tokens:${pubKey}`, JSON.stringify(trackedTokens));
+  } catch (err) {
+    logger.error({ err, pubKey, mint }, 'Failed to removeTrackedToken in Redis');
+  }
+}

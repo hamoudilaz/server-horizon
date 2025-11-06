@@ -85,6 +85,12 @@ export async function swapBloxroute(
         }
 
         const swap = (await swapRes.json()) as SwapResponse;
+
+        if (swap.simulationError) {
+          logger.warn({ simulationError: swap.simulationError }, 'Swap retry: simulation error in response');
+          return { error: `Simulation error during swap: ${swap.simulationError.error}` };
+        }
+
         swapTransaction = swap.swapTransaction;
         unitLimit = swap.computeUnitLimit;
 

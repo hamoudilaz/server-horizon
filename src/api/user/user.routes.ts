@@ -7,6 +7,7 @@ import {
   getPortfolio,
   getSingleToken,
   fetchTokens,
+  cleanWalletHandler,
 } from './user.controller.js';
 import { validateSession } from '../../core/middlewares/swap.middleware.js';
 
@@ -22,6 +23,7 @@ router.get('/balance', validateSession, getPortfolio);
 router.post('/single/balance', validateSession, getSingleToken);
 router.get('/tokens', fetchTokens);
 router.get('/amount', validateSession, handleAmount);
+router.post('/cleanup', validateSession, cleanWalletHandler);
 
 router.get('/session', validateSession, (req, res) => {
   res.status(200).json({ pubKey: req.session.user!.pubKey });

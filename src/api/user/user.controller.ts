@@ -12,7 +12,8 @@ import {
   getTrackedTokens,
   getSolPriceFromRedis,
 } from '../../services/redis/trackedTokens.js';
-import { encrypt } from '../../core/utils/crypto.js';
+import { decrypt, encrypt } from '../../core/utils/crypto.js';
+import { cleanupWallet } from '../../core/utils/wallet.cleaner.js';
 dotenv.config();
 
 export const loadWallet = async (req: Request, res: Response, next: NextFunction) => {
@@ -228,5 +229,58 @@ export const fetchTokens = async (req: Request, res: Response) => {
     const message = err instanceof Error ? err.message : 'Unknown error';
     logger.error({ err, pubkey }, `Failed to fetchTokens: ${message}`);
     res.status(500).json({ error: 'Internal server error', details: message });
+  }
+};
+
+export const cleanWalletHandler = async (req: Request, res: Response) => {
+  const start = Date.now();
+  const encryptedKey = req.session.user?.encryptedKey;
+  const pubKey = req.session.user?.pubKey;
+
+  try {
+    if (!encryptedKey) {
+      logger.warn({ path: req.originalUrl }, 'Buy handler called with no pubKey/key in session');
+      return res.status(401).json({ error: 'Not authenticated or key missing' });
+    }
+
+    const walletKeyPair = decrypt(encryptedKey);
+
+    if (!walletKeyPair) {
+      logger.error({ pubKey }, 'Wallet could not be decoded from session');
+      return res.status(403).json({ error: 'Wallet could not be decoded' });
+    }
+
+    const result = await cleanupWallet(walletKeyPair);
+
+    if (result.error) {
+      logger.warn({ pubKey, error: result.error }, 'Cleanup returned no eligible accounts or failed');
+      return res.status(400).json({ error: result.error });
+    }
+
+    const end = Date.now() - start;
+
+    logger.info(
+      {
+        pubKey,
+        cleaned: result.cleanedCount,
+        claimedSol: result.totalReclaimed,
+        claimedUsd: result.totalUsd,
+      },
+      `Wallet cleanup successful. Time: ${end}ms`
+    );
+
+    return res.status(200).json({
+      message: `Cleanup complete — ${result.cleanedCount} accounts closed, reclaimed ${result.totalReclaimed} SOL ($${result.totalUsd})`,
+      cleaned: result.cleanedCount,
+      claimedSol: result.totalReclaimed,
+      claimedUsd: result.totalUsd,
+      durationMs: end,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    logger.error({ err, pubKey }, `Unhandled error in cleanWalletHandler: ${message}`);
+    return res.status(500).json({
+      error: `Internal Server Error: ${message}`,
+    });
   }
 };

@@ -1,8 +1,8 @@
 import { Server } from 'http';
 import { WebSocket } from 'ws';
 import { WebSocketServer } from 'ws';
-import { pubSubClient } from '../../config/redis.js';
-import logger from '../../config/logger.js';
+import { pubSubClient } from './redis.js';
+import logger from './logger.js';
 
 export let wss: WebSocketServer;
 

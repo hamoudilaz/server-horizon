@@ -3,7 +3,7 @@ import http from 'http';
 import app from './app.js';
 import logger from './config/logger.js';
 import { redisClient, pubSubClient } from './config/redis.js';
-import { setupWebSocket } from './services/websocket/websocket.setup.js';
+import { setupWebSocket } from './config/websocket.setup.js';
 
 const start = async () => {
   const port = process.env.PORT || 3000;
