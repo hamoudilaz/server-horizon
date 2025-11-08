@@ -1,0 +1,36 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  main-api:
+    build:
+      context: .
+      dockerfile: main-api/Dockerfile
+    env_file: ./main-api/.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - '3000:3000'
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  wallet-listener:
+    build:
+      context: .
+      dockerfile: wallet-listener/Dockerfile
+    env_file: ./wallet-listener/.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy

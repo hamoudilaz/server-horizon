@@ -1,0 +1,35 @@
+{
+  "name": "wallet-listener-service",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "dependencies": {
+    "@horizon/shared": "file:../shared",
+    "@redis/client": "5.9.0",
+    "@solana/spl-token": "^0.1.8",
+    "@solana/web3.js": "^1.98.0",
+    "dotenv": "16.6.1",
+    "pino": "10.1.0",
+    "pino-http": "11.0.0",
+    "pino-pretty": "^13.1.2",
+    "set-interval-async": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@typescript-eslint/parser": "^8.46.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}
