@@ -1,0 +1,28 @@
+{
+  "name": "@horizon/shared",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./*.js": {
+      "import": "./dist/*.js",
+      "types": "./dist/*.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b -w"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "pino": "10.1.0",
+    "pino-http": "11.0.0",
+    "dotenv": "16.6.1",
+    "@redis/client": "5.9.0"
+  }
+}
