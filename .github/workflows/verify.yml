@@ -1,0 +1,31 @@
+name: Verify (Type + Lint)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check all workspaces
+        run: npm run build --if-present
+
+      - name: Lint main-api
+        run: npm run lint -w main-api
+
+      - name: Lint wallet-listener
+        run: npm run lint -w wallet-listener

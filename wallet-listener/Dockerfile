@@ -19,4 +19,4 @@ COPY --from=builder /app .
 
 WORKDIR /app/wallet-listener
 
-CMD ["node", "dist/index.js"]
+CMD ["npm", "start"]
