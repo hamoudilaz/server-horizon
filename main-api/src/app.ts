@@ -18,7 +18,6 @@ if (!SESSION_SECRET) {
 const app: Express = express();
 
 const COOKIE_OPTIONS = {
-  domain: NODE_ENV === 'production' ? '.horizonlabs.se' : undefined,
   path: '/',
   secure: NODE_ENV === 'production',
   httpOnly: true,
