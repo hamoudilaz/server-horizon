@@ -1,23 +1,82 @@
-# 🧠 Solana Trader Backend service
+# 🧠 Horizon Trading Platform - Backend
 
-This is the backend server for my Solana-based trading platform. It powers real-time token trading with a focus on speed, precision, and reliability.
+A **microservices-based Solana trading platform** built with TypeScript, Node.js, and Redis. It powers real-time token trading with WebSocket updates, wallet monitoring, and transaction execution through Jito Block Engine or Bloxroute.
 
-You can use this backend to:
+## ✨ Features
 
-* 🔄 Buy/sell based on user input.
-* 🚀 Choose between **Standard Mode** (Jito Block Engine) and **Turbo Mode** (Nozomi Validator).
-* 📉 Track token balances for managing wallet state.
-* ⚡ Handle connection fallbacks and ensure consistent execution even under load.
+- 🔄 **Real-time trading**: Buy/sell Solana tokens with instant execution
+- 🚀 **Dual execution modes**: Standard (Jito Block Engine) and Turbo (Bloxroute)
+- 📊 **Live portfolio tracking**: Automatic wallet monitoring with WebSocket updates
+- 🏗️ **Microservices architecture**: Scalable services with Redis Pub/Sub coordination
+- ⚡ **High availability**: Distributed locking and graceful failover
+- 🔐 **Secure sessions**: Encrypted wallet keys with Redis-backed sessions
+
+---
+
+## 🏗️ Architecture
+
+This backend consists of **3 microservices**:
+
+### **1. `shared/` - Common Library**
+
+Shared utilities, types, and configurations used across all services.
+
+**Exports:**
+
+- Logger (Pino-based structured logging)
+- Redis client factory
+- Environment variables & constants
+- Token metadata utilities
+- TypeScript interfaces
+
+### **2. `main-api/` - REST API Server**
+
+HTTP server handling authentication, trading operations, and WebSocket connections.
+
+**Endpoints:**
+
+- `POST /api/user/loadKey` - Load wallet
+- `POST /api/user/logout` - Logout and stop tracking
+- `GET /api/user/balance` - Get SOL balance
+- `GET /api/user/tracked-tokens` - Get token portfolio
+- `POST /api/swap/buy` - Buy tokens (SOL → Token)
+- `POST /api/swap/sell` - Sell tokens (Token → SOL)
+- `POST /api/demo/*` - Demo trading mode
+
+**Features:**
+
+- Express sessions stored in Redis
+- Rate limiting (1533 req/10s)
+- WebSocket server with Redis Pub/Sub sync
+- CORS configured for frontend
+
+### **3. `wallet-listener/` - Blockchain Monitor**
+
+Background service that monitors Solana wallets in real-time.
+
+**Features:**
+
+- Listens to blockchain transactions via Solana WebSocket
+- Distributed locking (prevents duplicate monitoring)
+- Reconciliation loop (syncs every 5 seconds)
+- Publishes updates to Redis Pub/Sub
+- SOL price caching plugin
 
 ---
 
 ## 💪 Setup
 
-### 1. Clone the repo
+### Prerequisites
+
+- Node.js 22+
+- Redis (or use Docker Compose)
+- Solana RPC endpoint (Helius, QuickNode, etc.)
+
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/hamoudilaz/horizon-server.git
-cd backend-folder
+cd horizon-server/backend
 ```
 
 ### 2. Install dependencies
@@ -26,78 +85,270 @@ cd backend-folder
 npm install
 ```
 
-### 3. Create `.env` file in the root directory
+This installs dependencies for all workspaces (`shared`, `main-api`, `wallet-listener`).
+
+### 3. Configure environment variables
+
+Create `.env` files in both `main-api/` and `wallet-listener/`:
+
+**`main-api/.env`:**
 
 ```env
+# Jupiter API
 JUP_QUOTE=https://lite-api.jup.ag/swap/v1/quote
 JUP_SWAP=https://lite-api.jup.ag/swap/v1/swap
+
+# Jito Block Engine
 JITO_RPC=https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/transactions
-FRONTEND_URL_CORS=http://localhost:5173
 
-# Turbo mode only (Nozomi)
-NOZ_URL=https://api.nozomi.network/v1/submit
-NOZ_API_KEY=your_nozomi_api_key
+# Bloxroute (Turbo Mode)
+BLOXROUTE_URL=https://your-bloxroute-endpoint
+BLOXROUTE_AUTH=your_bloxroute_auth_header
 
-# RPC/WebSocket
+# Solana RPC
 RPC_URL=https://mainnet.helius-rpc.com/?api-key=your_key
-WSS_SHYFT=wss://your-wss-from-shyft.io
+WSS_URL=wss://your-wss-endpoint
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Security
+SESSION_SECRET=your-secret-key-here
+ENCRYPTION_KEY=your-32-byte-hex-key
+
+# Frontend
+FRONTEND_URL_CORS=http://localhost:5173
+NODE_ENV=development
+PORT=3000
+
+# Logging
+LOG_LEVEL=info
 ```
 
-> 💬 To get Nozomi access (free), contact [@h3ll0wrld on Telegram](https://t.me/h3ll0wrld) or [@temporal\_xyz on Twitter](https://x.com/temporal_xyz) and ask for API key access.
+**`wallet-listener/.env`:**
 
-> 🔑 To get a free RPC and WSS endpoint, sign up at [helius.dev](https://www.helius.dev) or [shyft.io](https://shyft.io).
+```env
+# Solana RPC
+RPC_URL=https://mainnet.helius-rpc.com/?api-key=your_key
+WSS_URL=wss://your-wss-endpoint
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Logging
+LOG_LEVEL=info
+```
+
+> 🔑 **Free RPC**: Sign up at [helius.dev](https://www.helius.dev) or [shyft.io](https://shyft.io)  
+> ⚡ **Bloxroute access**: Sign up at [bloxroute.com](https://bloxroute.com) for ultra-fast transaction routing
 
 ---
 
-## ▶️ Run the server
+## 🚀 Running the Platform
+
+### Option 1: Docker Compose (Recommended)
 
 ```bash
-npm start
+docker-compose up --build
 ```
 
-Server will start on:
-**[http://localhost:3000](http://localhost:3000)**
-and automatically initialize the WebSocket listener.
+This starts:
 
-To run the platform fully, you also need the frontend:
-👉 Clone it from: [https://github.com/hamoudilaz/client-horizon](https://github.com/hamoudilaz/client-horizon)
+- Redis on port 6379
+- `main-api` on port 3000
+- `wallet-listener` (background service)
+
+### Option 2: Local Development
+
+**Terminal 1 - Start Redis:**
+
+```bash
+redis-server
+```
+
+**Terminal 2 - Build shared package:**
+
+```bash
+npm run build -w @horizon/shared
+```
+
+**Terminal 3 - Start main API:**
+
+```bash
+npm run dev:main-api
+```
+
+**Terminal 4 - Start wallet listener:**
+
+```bash
+npm run dev:listener
+```
+
+**Access the API:**
+👉 **[http://localhost:3000](http://localhost:3000)**
+
+**Frontend:**
+Clone from: [https://github.com/hamoudilaz/client-horizon](https://github.com/hamoudilaz/client-horizon)
 
 ---
 
-## ⚙️ How it works
+## ⚙️ How It Works
 
-* **Standard Mode**
-  Uses Jito Block Engine via `JITO_RPC` for block-level transaction monitoring and swap execution.
+### Trading Modes
 
-* **Turbo Mode**
-  Activates if node = true in the buy request (via frontend dashboard switch). This uses Nozomi validator APIs for hyper-fast execution paths (useful for sniping or high-speed trades).
+**Standard Mode:**
 
-* **Failover**
-  If an endpoint fails or throws, the system gracefully falls back to backup services (Coinbase for pricing, different validators, etc).
+- Uses Jito Block Engine for transaction bundling
+- Endpoint: `JITO_RPC`
+- Best for: Regular trading with MEV protection
 
-* **WebSocket Setup**
-  Real-time listener for account/token activity via `setupWebSocket()`.
+**Turbo Mode:**
+
+- Activated when `node: true` in buy/sell request
+- Routes through Bloxroute for ultra-fast transaction routing
+- Best for: Sniping and high-speed trades
+
+### Real-time Updates Flow
+
+```
+1. User buys token via POST /api/swap/buy
+   └─ Transaction submitted to Solana
+
+2. wallet-listener detects transaction
+   ├─ Decodes token mint & balance
+   ├─ Fetches metadata (logo, symbol)
+   └─ Publishes to Redis: ws-messages channel
+
+3. main-api receives Pub/Sub message
+   └─ Forwards to WebSocket clients
+
+4. Frontend updates UI in real-time
+```
+
+### Redis Architecture
+
+**Data Storage:**
+
+- `active-wallets` (SET) - Wallets being monitored
+- `tracked-tokens:{pubKey}` (HASH) - User portfolios
+- `lock:{pubKey}` (STRING) - Distributed locks (30s TTL)
+- `sol-price` (STRING) - Cached SOL/USD price
+- `sess:{sessionId}` (STRING) - Express sessions
+
+**Pub/Sub Channels:**
+
+- `ws-messages` - User-specific wallet updates
+- `ws-demo-broadcast` - Demo mode events
 
 ---
 
-## 📂 Project structure
+## 📂 Project Structure
 
-| Folder/File  | Description                                            |
-| ------------ | ------------------------------------------------------ |
-| `__tests__/` | Endpoint tests for all routes                          |
-| `config/`    | Config files for Jest and test setup                   |
-| `engine/`    | Contains Jito and Nozomi execution logic               |
-| `handlers/`  | Route middlewares like `handleActions` and `swap`      |
-| `helpers/`   | Helper functions and WebSocket/parallel utilities      |
-| `routes/`    | Main API endpoint route definitions                    |
-| `utils/`     | Input validation, global constants, and decoding logic |
-| `panel.js`   | Core logic and wallet management interface             |
-| `server.js`  | Main entry point for starting the backend server       |
+```
+backend/
+├── shared/                    # Common library (@horizon/shared)
+│   ├── src/
+│   │   ├── logger.ts         # Pino logger
+│   │   ├── redisClient.ts    # Redis factory
+│   │   ├── env.ts            # Environment variables
+│   │   ├── constants.ts      # Global constants
+│   │   ├── types.ts          # TypeScript interfaces
+│   │   └── utils/
+│   │       └── price.service.ts  # Price utilities
+│   └── package.json
+│
+├── main-api/                  # REST API & WebSocket server
+│   ├── src/
+│   │   ├── server.ts         # Entry point
+│   │   ├── app.ts            # Express app setup
+│   │   ├── api/              # Route handlers
+│   │   │   ├── user/         # User endpoints
+│   │   │   ├── swap/         # Trading endpoints
+│   │   │   └── demo/         # Demo mode
+│   │   ├── config/
+│   │   │   ├── redis.ts      # Redis clients
+│   │   │   └── websocket.setup.ts  # WebSocket + Pub/Sub
+│   │   ├── services/
+│   │   │   ├── engine/       # Jito & Bloxroute executors
+│   │   │   ├── solana/       # Blockchain utilities
+│   │   │   └── validation/   # Input validators
+│   │   └── core/
+│   │       ├── middlewares/  # Express middlewares
+│   │       ├── types/        # TypeScript types
+│   │       └── utils/        # Helpers
+│   ├── __tests__/            # API tests
+│   └── package.json
+│
+└── wallet-listener/           # Blockchain monitor service
+    ├── src/
+    │   ├── index.ts          # Entry point
+    │   ├── config.ts         # Solana & Redis setup
+    │   ├── core/
+    │   │   ├── listenerManager.ts  # Wallet subscription logic
+    │   │   └── solanaUtils.ts      # Transaction decoders
+    │   └── plugins/
+    │       └── sol-price.plugin.ts # Price caching
+    └── package.json
+```
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run tests for main-api
+npm test -w main-api
+```
+
+---
+
+## 🐳 Docker Deployment
+
+**Build images:**
+
+```bash
+docker-compose build
+```
+
+**Run services:**
+
+```bash
+docker-compose up -d
+```
+
+**View logs:**
+
+```bash
+docker-compose logs -f main-api
+docker-compose logs -f wallet-listener
+```
+
+---
+
+## 🔐 Security Features
+
+- **Encrypted wallet keys**: AES-256 encryption before storing in sessions
+- **Redis-backed sessions**: No in-memory session leaks
+- **Rate limiting**: Per-IP request throttling
+- **CORS protection**: Configured allowed origins
+- **Secure cookies**: `httpOnly`, `secure`, `sameSite` configured
+
+---
+
+## 📈 Scalability
+
+- **Horizontal scaling**: Multiple API instances supported
+- **Distributed locking**: Prevents duplicate wallet monitoring
+- **Redis Pub/Sub**: Syncs WebSocket messages across instances
+- **Graceful shutdown**: SIGTERM/SIGINT handlers
 
 ---
 
 ## 📬 Contact
 
-For help, ideas or feedback — open an issue or reach out via Telegram or Twitter!
+For help, ideas, or feedback — open an issue or reach out:
+
+- **Telegram**: [@h3ll0wrld](https://t.me/h3ll0wrld)
+- **Twitter**: [@temporal_xyz](https://x.com/temporal_xyz)
 
 ---
