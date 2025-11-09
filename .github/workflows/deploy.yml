@@ -1,0 +1,39 @@
+name: Deploy Docker Images
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changed folders
+        id: detect
+        run: |
+          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | cut -d/ -f1 | sort -u)
+          echo "changed=$CHANGED" >> $GITHUB_ENV
+          echo "Changed folders: $CHANGED"
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & push main-api
+        if: contains(env.changed, 'main-api') || contains(env.changed, 'shared')
+        run: |
+          docker build -f main-api/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/main-api:latest .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/main-api:latest
+
+      - name: Build & push wallet-listener
+        if: contains(env.changed, 'wallet-listener') || contains(env.changed, 'shared')
+        run: |
+          docker build -f wallet-listener/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/wallet-listener:latest .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/wallet-listener:latest
