@@ -35,8 +35,24 @@ jobs:
           docker build -f main-api/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/main-api:latest .
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/main-api:latest
 
+      - name: Redeploy main-api on Railway
+        if: (contains(env.changed, 'main-api') || contains(env.changed, 'shared')) && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: railwayapp/cli-action@v2
+        with:
+          railwayToken: ${{ secrets.RAILWAY_TOKEN }}
+          service: main-api
+          command: redeploy
+
       - name: Build & push wallet-listener
         if: (contains(env.changed, 'wallet-listener') || contains(env.changed, 'shared')) && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           docker build -f wallet-listener/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/wallet-listener:latest .
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/wallet-listener:latest
+
+      - name: Redeploy wallet-listener on Railway
+        if: (contains(env.changed, 'wallet-listener') || contains(env.changed, 'shared')) && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: railwayapp/cli-action@v2
+        with:
+          railwayToken: ${{ secrets.RAILWAY_TOKEN }}
+          service: wallet-listener
+          command: redeploy
