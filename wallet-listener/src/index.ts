@@ -9,14 +9,11 @@ const RECONCILE_INTERVAL_MS = 5000;
 async function main() {
   logger.info('Starting Wallet Listener Service...');
 
-  // 1. Connect to Redis
   await connectServices();
 
-  // 2. Run reconciliation once on startup
   await reconcileWallets();
 
   pluginsLoader();
-  // 3. Set up the loop to run periodically
   setInterval(reconcileWallets, RECONCILE_INTERVAL_MS);
 
   logger.info(`Service started. Reconciling every ${RECONCILE_INTERVAL_MS}ms.`);
