@@ -73,6 +73,7 @@ app.get('/', (req, res) => {
 });
 console.log('placedholder for CI test');
 
+console.log('placeholder for CI test');
 // --- Routes ---
 app.use('/api', apiRouter);
 
