@@ -37,7 +37,7 @@ jobs:
 
       - name: Redeploy main-api on Railway
         if: (contains(env.changed, 'main-api') || contains(env.changed, 'shared')) && github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: railwayapp/cli-action@v2
+        uses: railwayapp/cli@v2
         with:
           railwayToken: ${{ secrets.RAILWAY_TOKEN }}
           service: main-api
@@ -51,7 +51,7 @@ jobs:
 
       - name: Redeploy wallet-listener on Railway
         if: (contains(env.changed, 'wallet-listener') || contains(env.changed, 'shared')) && github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: railwayapp/cli-action@v2
+        uses: railwayapp/cli@v2
         with:
           railwayToken: ${{ secrets.RAILWAY_TOKEN }}
           service: wallet-listener
