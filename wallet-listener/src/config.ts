@@ -17,8 +17,8 @@ redisClient.on('error', (err) => logger.error({ err }, 'Redis Client Error'));
 // ────────────────────────────────────────────────
 // 🔧 Solana Setup
 // ────────────────────────────────────────────────
-if (!RPC_URL) {
-  logger.fatal('RPC_URL is not defined');
+if (!RPC_URL || !WSS_URL) {
+  logger.fatal('RPC_URL or WSS_URL is not defined');
   process.exit(1);
 }
 
