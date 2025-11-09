@@ -66,15 +66,11 @@ app.use(
     store: redisStore,
   })
 );
-console.log('placedholder for CI test');
-console.log('placedholder for CI test');
 
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to root!' });
 });
-console.log('placedholder for CI test');
 
-console.log('placeholder for CI test');
 // --- Routes ---
 app.use('/api', apiRouter);
 
