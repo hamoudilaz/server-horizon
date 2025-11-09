@@ -67,6 +67,8 @@ app.use(
     store: redisStore,
   })
 );
+console.log('placedholder for CI test');
+console.log('placedholder for CI test');
 
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to root!' });
