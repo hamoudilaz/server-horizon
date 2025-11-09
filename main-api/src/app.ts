@@ -71,6 +71,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to root!' });
 });
 
+console.log('placeholder for CI test');
 // --- Routes ---
 app.use('/api', apiRouter);
 
