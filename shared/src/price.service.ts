@@ -118,14 +118,16 @@ export async function tokenLogo(mint: string): Promise<TokenLogoInfo | null> {
 
       if (!content || !content.files || !content.files[0]) {
         logger.warn({ mint }, 'Helius logo not found, falling back to Jupiter');
-        const res = await fetch(`https://lite-api.jup.ag/tokens/v1/token/${mint}`);
+        const res = await fetch(`https://lite-api.jup.ag/tokens/v2/search?query=${mint}`);
 
-        const { logoURI, symbol, decimals } = await res.json();
-        if (!logoURI || !symbol || typeof decimals !== 'number') {
+        const [data] = await res.json();
+
+        const { icon, symbol, decimals } = data;
+        if (!icon || !symbol || typeof decimals !== 'number') {
           logger.error({ mint }, 'Failed to get logo from Jupiter fallback');
           return null;
         }
-        return { logoURI, symbol, decimals };
+        return { logoURI: icon, symbol, decimals };
       }
 
       return {
