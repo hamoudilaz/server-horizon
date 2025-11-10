@@ -12,7 +12,7 @@ if (!REDIS_URL) {
 
 export const redisClient = makeRedisClient();
 
-redisClient.on('error', (err) => logger.error({ err }, 'Redis Client Error'));
+redisClient.on('error', (err) => logger.error(`Redis Client Error: ${err?.code}`));
 
 // ────────────────────────────────────────────────
 // 🔧 Solana Setup
