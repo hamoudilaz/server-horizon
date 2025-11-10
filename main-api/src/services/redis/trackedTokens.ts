@@ -1,6 +1,6 @@
 // src/services/redis/trackedTokens.ts
 import { redisClient } from '../../config/redis.js';
-import { BroadcastedToken, logger } from '@horizon/shared';
+import { BroadcastedToken, logger, WS_MESSAGES_CHANNEL } from '@horizon/shared';
 
 type TokenMap = { [mint: string]: BroadcastedToken };
 
@@ -51,6 +51,10 @@ export async function removeWronglyTrackedToken(pubKey: string, mint: string, tr
     delete trackedTokens[mint];
 
     await redisClient.set(`tokens:${pubKey}`, JSON.stringify(trackedTokens));
+
+    // Broadcast removal to user via WebSocket
+    const message = JSON.stringify({ pubKey, data: { tokenMint: mint, removed: true } });
+    await redisClient.publish(WS_MESSAGES_CHANNEL, message);
   } catch (err) {
     logger.error({ err, pubKey, mint }, 'Failed to removeTrackedToken in Redis');
   }
