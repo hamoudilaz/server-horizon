@@ -9,7 +9,7 @@ const start = async () => {
   const server = http.createServer(app);
 
   try {
-    server.listen(PORT, () => {
+    server.listen(PORT, '0.0.0.0', () => {
       setupWebSocket(server);
       logger.info(`HTTP + WebSocket server listening on http://localhost:${PORT}`);
     });
