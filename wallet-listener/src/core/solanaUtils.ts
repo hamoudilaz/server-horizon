@@ -22,6 +22,7 @@ interface Content {
   preBalances?: number[] | null;
   postBalances?: number[] | null;
   fee: number;
+  logMessages?: string[] | null;
 }
 
 interface txObject {
@@ -40,7 +41,6 @@ export async function getBalance(outputMint: string, pubKey: string) {
     });
     if (!tokenAccounts.value?.length) return 0;
     const amountToSell = Math.floor(Number(tokenAccounts.value[0].account.data.parsed.info.tokenAmount.amount));
-
     logger.debug({ pubKey, outputMint, amountToSell }, `Amount to sell`);
     return amountToSell;
   } catch (error) {
@@ -50,15 +50,25 @@ export async function getBalance(outputMint: string, pubKey: string) {
 }
 
 export async function getTx(signature: string, pubKey: string) {
-  if (!pubKey) return { error: 'Pubkey is not loaded' };
-  const tx = await connection.getTransaction(signature, {
-    commitment: 'confirmed',
-    maxSupportedTransactionVersion: 0,
-  });
-  if (!tx) return { error: 'No tx' };
+  try {
+    if (!pubKey) return { error: 'Pubkey is not loaded' };
+    const tx = await connection.getTransaction(signature, {
+      commitment: 'confirmed',
+      maxSupportedTransactionVersion: 0,
+    });
+    if (!tx) return { error: 'No tx' };
+    const isSwap = await checkifIsSwap(tx, pubKey);
+    if (!isSwap) {
+      return { ignore: true, error: 'Is not a swap transaction' };
+    }
 
-  const decoded = await decodeTx(tx, pubKey);
-  return decoded;
+    const decoded = await decodeTx(tx, pubKey);
+    return decoded;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    logger.error({ error: message, signature, pubKey }, 'Failed to getTx from RPC');
+    return { error: message };
+  }
 }
 
 async function decodeTx(transaction: txObject, owner: string) {
@@ -195,3 +205,30 @@ export async function publishToUser(pubKey: string, data: BroadcastMessage) {
     logger.error({ err, pubKey }, 'Failed to publish WebSocket message to Redis');
   }
 }
+
+const checkifIsSwap = async (transaction: txObject, owner: string) => {
+  try {
+    const logs = transaction.meta?.logMessages;
+
+    if (!logs) {
+      logger.error({ owner }, 'No logs found in transaction meta');
+      return false;
+    }
+    const isSwap = logs.some((log) => {
+      return (
+        log.includes('JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4') ||
+        log.includes('Instruction: PreTokenSwap') ||
+        log.includes('Instruction: PostTokenSwap') ||
+        log.includes('Instruction: Swap2') ||
+        log.includes('Instruction: Swap') ||
+        log.includes('Instruction: Buy') ||
+        log.includes('Instruction: Sell')
+      );
+    });
+
+    return isSwap;
+  } catch (error) {
+    logger.error({ error, owner }, 'Error checking if transaction is a swap');
+    return false;
+  }
+};

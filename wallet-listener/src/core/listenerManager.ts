@@ -23,6 +23,10 @@ async function onLogEventCallback(pubKey: string, logs: Logs) {
       logger.warn({ pubKey, signature, error: res.error }, 'Failed to decode tx from logs');
       return;
     }
+    if ('ignore' in res) {
+      logger.debug('Ignoring non-swap transaction');
+      return;
+    }
 
     const { otherMint, tokenBalance } = res;
 
@@ -144,4 +148,20 @@ export async function reconcileWallets() {
   } catch (err) {
     logger.error({ err }, 'Error during wallet reconciliation');
   }
+}
+
+/**
+ * Cleans up all active subscriptions for this instance.
+ * Called during a graceful shutdown.
+ */
+export async function cleanupAllSubscriptions() {
+  logger.info(`Cleaning up ${activeSubscriptions.size} active subscriptions...`);
+  const cleanupPromises: Promise<void>[] = [];
+
+  for (const pubKey of activeSubscriptions.keys()) {
+    cleanupPromises.push(removeWallet(pubKey));
+  }
+
+  await Promise.all(cleanupPromises);
+  logger.info('All subscriptions cleaned up.');
 }
