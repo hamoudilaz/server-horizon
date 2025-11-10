@@ -57,10 +57,6 @@ export async function getTx(signature: string, pubKey: string) {
       maxSupportedTransactionVersion: 0,
     });
     if (!tx) return { error: 'No tx' };
-    const isSwap = await checkifIsSwap(tx, pubKey);
-    if (!isSwap) {
-      return { ignore: true, error: 'Is not a swap transaction' };
-    }
 
     const decoded = await decodeTx(tx, pubKey);
     return decoded;
@@ -206,10 +202,8 @@ export async function publishToUser(pubKey: string, data: BroadcastMessage) {
   }
 }
 
-const checkifIsSwap = async (transaction: txObject, owner: string) => {
+export const checkIfIsSwap = async (logs: string[], owner: string) => {
   try {
-    const logs = transaction.meta?.logMessages;
-
     if (!logs) {
       logger.error({ owner }, 'No logs found in transaction meta');
       return false;

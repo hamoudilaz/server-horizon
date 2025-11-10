@@ -9,6 +9,10 @@
   "scripts": {
     "build": "npm run build -ws --if-present",
     "dev:main-api": "npm run build -w @horizon/shared && npm run dev -w main-api",
-    "dev:listener": "npm run build -w @horizon/shared && npm run dev -w wallet-listener"
+    "dev:listener": "npm run build -w @horizon/shared && npm run dev -w wallet-listener",
+    "dev:all": "npm run build -w @horizon/shared && concurrently \"npm run dev -w main-api\" \"npm run dev -w wallet-listener\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
   }
 }
