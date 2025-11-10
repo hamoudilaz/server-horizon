@@ -2,7 +2,14 @@
 import { connection, redisClient } from '../config.js';
 import { logger, DEFAULT_IMG, ACTIVE_WALLETS_KEY, getTotalOwnedTokens, tokenLogo } from '@horizon/shared';
 import { PublicKey, Logs } from '@solana/web3.js';
-import { getTx, updateTrackedToken, removeTrackedToken, publishToUser, getTrackedTokens } from './solanaUtils.js';
+import {
+  getTx,
+  updateTrackedToken,
+  removeTrackedToken,
+  publishToUser,
+  getTrackedTokens,
+  checkIfIsSwap,
+} from './solanaUtils.js';
 import { randomUUID } from 'crypto';
 
 export const instanceId = randomUUID();
@@ -15,16 +22,19 @@ const activeSubscriptions = new Map<string, number>();
  * The callback function that fires on every log event.
  * This is the core logic from your old listenToWallets function.
  */
-async function onLogEventCallback(pubKey: string, logs: Logs) {
+async function onLogEventCallback(pubKey: string, event: Logs) {
   try {
-    const signature = logs.signature;
+    const signature = event.signature;
+
+    const isSwap = await checkIfIsSwap(event.logs, pubKey);
+    if (!isSwap) {
+      logger.debug('Ignoring non-swap transaction');
+      return { ignore: true, error: 'Is not a swap transaction' };
+    }
+
     const res = await getTx(signature, pubKey);
     if ('error' in res) {
       logger.warn({ pubKey, signature, error: res.error }, 'Failed to decode tx from logs');
-      return;
-    }
-    if ('ignore' in res) {
-      logger.debug('Ignoring non-swap transaction');
       return;
     }
 
@@ -76,7 +86,7 @@ async function addWallet(pubKey: string) {
   try {
     const pubKeyObj = new PublicKey(pubKey);
 
-    const subId = await connection.onLogs(pubKeyObj, (logs) => onLogEventCallback(pubKey, logs), 'confirmed');
+    const subId = await connection.onLogs(pubKeyObj, (event) => onLogEventCallback(pubKey, event), 'confirmed');
 
     activeSubscriptions.set(pubKey, subId);
 
