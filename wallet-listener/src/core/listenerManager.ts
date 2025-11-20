@@ -156,7 +156,8 @@ export async function reconcileWallets() {
       }
     }
   } catch (err) {
-    logger.error({ err }, 'Error during wallet reconciliation');
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    logger.error({ err: message }, 'Error during wallet reconciliation');
   }
 }
 
