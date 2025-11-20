@@ -33,6 +33,10 @@ export function setupWebSocket(server: Server) {
       }
     });
     ws.on('message', (message: string) => {
+      if (message.toString().includes('grafana')) {
+        return;
+      }
+
       try {
         const data = JSON.parse(message);
         // Expect a message like { type: 'auth', pubKey: '...' } from the client

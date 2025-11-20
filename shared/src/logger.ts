@@ -1,37 +1,42 @@
-import pino, { Logger } from 'pino';
+import pino, { Logger, TransportTargetOptions } from 'pino';
 import { pinoHttp } from 'pino-http';
-import { LOG_LEVEL, NODE_ENV } from './env.js';
+import { LOG_LEVEL, NODE_ENV, LOKI_HOST, APP_NAME } from './env.js';
 
-const pinoPrettyTransport = {
-  transport: {
+const transports: TransportTargetOptions[] = [];
+
+if (NODE_ENV !== 'production') {
+  transports.push({
     target: 'pino-pretty',
     options: {
       colorize: true,
       translateTime: 'SYS:HH:MM:ss',
       ignore: 'pid,hostname,req,res,responseTime',
     },
-  },
-};
+  });
+}
+
+if (LOKI_HOST) {
+  transports.push({
+    target: 'pino-loki',
+    options: {
+      batching: true,
+      interval: 5,
+      host: LOKI_HOST,
+      labels: { app: APP_NAME, env: NODE_ENV },
+    },
+  });
+}
 
 export const logger: Logger = pino({
   level: LOG_LEVEL,
-  ...(NODE_ENV !== 'production' && pinoPrettyTransport),
+  transport: { targets: transports },
 });
 
 export const httpLogger = pinoHttp({
-  logger: logger,
-
+  logger,
   serializers: {
-    req: (req) => ({
-      method: req.method,
-      url: req.url,
-    }),
-    res: (res) => ({
-      statusCode: res.statusCode,
-    }),
+    req: (req) => ({ method: req.method, url: req.url }),
+    res: (res) => ({ statusCode: res.statusCode }),
   },
-
-  customSuccessMessage: (req, res) => {
-    return `${req.method} ${req.url} - ${res.statusCode}`;
-  },
+  customSuccessMessage: (req, res) => `${req.method} ${req.url} - ${res.statusCode}`,
 });

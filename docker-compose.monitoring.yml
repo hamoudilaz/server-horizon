@@ -1,0 +1,35 @@
+# backend/docker-compose.monitoring.yml
+version: '3.9'
+
+services:
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    ports:
+      # This is for your 'npm run dev' services on the host
+      - '3100:3100'
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki # Persists Loki logs
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: grafana
+    ports:
+      # Access Grafana UI at http://localhost:3030
+      - '3030:3000'
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      # Persists Grafana dashboards and settings
+      - grafana_data:/var/lib/grafana
+      # Mounts the provisioning file we created above
+      - ./monitoring:/etc/grafana/provisioning/datasources
+    depends_on:
+      - loki
+
+# Defines the named volumes for persistence
+volumes:
+  loki_data: {}
+  grafana_data: {}
