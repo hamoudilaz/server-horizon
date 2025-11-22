@@ -39,7 +39,7 @@ jobs:
         if: (contains(env.changed, 'main-api') || contains(env.changed, 'shared')) && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           npm install -g @railway/cli
-          RAILWAY_TOKEN=${{ secrets.RAILWAY_TOKEN }} railway up -s main-api
+          RAILWAY_TOKEN=${{ secrets.RAILWAY_TOKEN }} railway redeploy -s main-api
 
       - name: Build & push wallet-listener
         if: (contains(env.changed, 'wallet-listener') || contains(env.changed, 'shared')) && github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -51,4 +51,4 @@ jobs:
         if: (contains(env.changed, 'wallet-listener') || contains(env.changed, 'shared')) && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           npm install -g @railway/cli
-          RAILWAY_TOKEN=${{ secrets.RAILWAY_TOKEN }} railway up -s wallet-listener
+          RAILWAY_TOKEN=${{ secrets.RAILWAY_TOKEN }} railway redeploy -s wallet-listener
