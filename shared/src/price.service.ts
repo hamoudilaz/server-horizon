@@ -76,6 +76,7 @@ async function getGeckoTerminalPrice(mint: string): Promise<number> {
     });
     const { data } = await res.json();
     const raw = data?.attributes?.token_prices?.[mint];
+
     if (!raw) {
       logger.error({ mint }, 'Failed to get price from GeckoTerminal last fallback, skipping token');
       return 0;
