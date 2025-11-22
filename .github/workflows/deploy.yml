@@ -39,7 +39,7 @@ jobs:
         if: (contains(env.changed, 'main-api') || contains(env.changed, 'shared')) && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           npm install -g @railway/cli
-          RAILWAY_TOKEN=${{ secrets.RAILWAY_TOKEN }} railway up -s main-api --yes
+          RAILWAY_TOKEN=${{ secrets.RAILWAY_TOKEN }} railway up -s main-api
 
       - name: Build & push wallet-listener
         if: (contains(env.changed, 'wallet-listener') || contains(env.changed, 'shared')) && github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -47,8 +47,8 @@ jobs:
           docker build -f wallet-listener/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/wallet-listener:latest .
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/wallet-listener:latest
 
-      - name: Redeploy wallet-listener on Railway
+      - name: Redeploy wallet-listener on Railway§
         if: (contains(env.changed, 'wallet-listener') || contains(env.changed, 'shared')) && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           npm install -g @railway/cli
-          RAILWAY_TOKEN=${{ secrets.RAILWAY_TOKEN }} railway up -s wallet-listener --yes
+          RAILWAY_TOKEN=${{ secrets.RAILWAY_TOKEN }} railway up -s wallet-listener
