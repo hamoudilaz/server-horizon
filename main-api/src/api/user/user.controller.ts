@@ -232,6 +232,7 @@ export const cleanWalletHandler = async (req: Request, res: Response) => {
   const start = Date.now();
   const encryptedKey = req.session.user?.encryptedKey;
   const pubKey = req.session.user?.pubKey;
+  const isHardCleanup = req.body;
 
   try {
     if (!encryptedKey) {
@@ -246,7 +247,7 @@ export const cleanWalletHandler = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Wallet could not be decoded' });
     }
 
-    const result = await cleanupWallet(walletKeyPair);
+    const result = await cleanupWallet(walletKeyPair, isHardCleanup);
 
     if (result.error) {
       logger.warn({ pubKey, error: result.error }, 'Cleanup returned no eligible accounts or failed');

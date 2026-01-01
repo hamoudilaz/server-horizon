@@ -3,7 +3,7 @@ import { TOKEN_PROGRAM_ID, createTransferCheckedInstruction, createCloseAccountI
 import { connection } from '../../services/solana/panel.js';
 import { getSolPriceFromRedis } from '../../services/redis/trackedTokens.js';
 
-export async function cleanupWallet(walletKeyPair: Keypair) {
+export async function cleanupWallet(walletKeyPair: Keypair, isHardCleanup = false) {
   try {
     const rentLamports = await connection.getMinimumBalanceForRentExemption(165);
     const rentSol = rentLamports / 1e9;
@@ -26,7 +26,7 @@ export async function cleanupWallet(walletKeyPair: Keypair) {
       const rawAmount = BigInt(info.tokenAmount.amount ?? '0');
 
       // Skip valuable accounts
-      if (rawAmount > 1_0000n) continue;
+      if (!isHardCleanup && rawAmount > 1_0000n) continue;
 
       // Find a valid existing holder ATA
       const largest = await connection.getTokenLargestAccounts(mint);
