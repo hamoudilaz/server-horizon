@@ -143,7 +143,6 @@ export async function getSessionState(req: Request, res: Response) {
     if (data.currentUsd > 100) {
       data.currentUsd = Number(data.currentUsd.toFixed(0));
     }
-    await new Promise((resolve) => setTimeout(resolve, 3000));
     res.status(200).json({
       valid: true,
       amount: {

@@ -23,6 +23,7 @@ if (LOKI_HOST) {
       interval: 5,
       host: LOKI_HOST,
       labels: { app: APP_NAME, env: NODE_ENV },
+      silenceErrors: true, // Suppress verbose connection errors
     },
   });
 }

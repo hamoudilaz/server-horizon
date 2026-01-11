@@ -10,7 +10,10 @@
     "build": "npm run build -ws --if-present",
     "dev:main-api": "npm run build -w @horizon/shared && npm run dev -w main-api",
     "dev:listener": "npm run build -w @horizon/shared && npm run dev -w wallet-listener",
-    "dev:all": "npm run build -w @horizon/shared && concurrently \"npm run dev -w main-api\" \"npm run dev -w wallet-listener\""
+    "dev:all": "npm run build -w @horizon/shared && concurrently \"npm run dev -w main-api\" \"npm run dev -w wallet-listener\"",
+    "image:main-api": "docker build -f main-api/Dockerfile -t horizon-main-api .",
+    "image:listener": "docker build -f wallet-listener/Dockerfile -t horizon-wallet-listener .",
+    "image:all": "npm run image:main-api && npm run image:listener"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

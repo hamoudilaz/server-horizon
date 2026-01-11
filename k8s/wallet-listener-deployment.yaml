@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallet-listener
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wallet-listener
+  template:
+    metadata:
+      labels:
+        app: wallet-listener
+    spec:
+      containers:
+        - name: wallet-listener
+          image: hamoudilazkani/wallet-listener:latest
+          envFrom:
+            - secretRef:
+                name: wallet-listener-env
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wallet-listener
+spec:
+  selector:
+    app: wallet-listener
+  ports:
+    - port: 3001
+      targetPort: 3001
+  type: ClusterIP
