@@ -88,6 +88,8 @@ async function addWallet(pubKey: string) {
 
     const subId = await connection.onLogs(pubKeyObj, (event) => onLogEventCallback(pubKey, event), 'confirmed');
 
+    console.log(subId);
+
     activeSubscriptions.set(pubKey, subId);
 
     logger.info({ pubKey }, 'Subscribed to wallet logs');

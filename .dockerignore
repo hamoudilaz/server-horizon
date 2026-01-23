@@ -6,10 +6,16 @@ node_modules
 .git
 .gitignore
 .dockerignore
-Dockerfile
-*/Dockerfile
+
 
 # Ignore local dev files
 .env
 */.env
-npm-debug.log
+npm-debug.log*
+
+
+# Build artifacts
+dist
+build
+*.tsbuildinfo
+.tsbuildinfo

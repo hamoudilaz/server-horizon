@@ -1,0 +1,26 @@
+# Environment files
+.env
+.env.*
+
+# Node modules
+node_modules
+npm-debug.log
+
+# Tests
+__tests__
+*.test.ts
+*.test.js
+jest.config.*
+jest.setup.*
+
+# Development files
+.git
+.gitignore
+README.md
+.vscode
+.idea
+
+# Build artifacts
+dist
+build
+*.tsbuildinfo

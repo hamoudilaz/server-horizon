@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: horizon-local
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+      - name: cloudflared
+        image: cloudflare/cloudflared:latest
+        args:
+        - tunnel
+        - --config
+        - /etc/cloudflared/config.yaml
+        - run
+        volumeMounts:
+        - name: config
+          mountPath: /etc/cloudflared
+          readOnly: true
+        - name: creds
+          mountPath: /etc/cloudflared/creds
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: cloudflared-config
+      - name: creds
+        secret:
+          secretName: cloudflared-creds
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+  namespace: horizon-local
+data:
+  config.yaml: |
+    tunnel: 4f594a67-54cb-4735-89a6-5bbb24a01837
+    credentials-file: /etc/cloudflared/creds/credentials.json
+    
+    ingress:
+      # Frontend - your custom domain
+      - hostname: horizonlabs.se
+        service: http://frontend:80
+      
+      # Backend API - your custom domain
+      - hostname: api.horizonlabs.se
+        service: http://main-api:3000
+      
+      # Catch-all rule (required)
+      - service: http_status:404
