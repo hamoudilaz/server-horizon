@@ -220,7 +220,9 @@ export const fetchTokens = async (req: Request, res: Response) => {
       return res.status(200).send([]);
     }
 
-    res.status(200).send(Object.values(trackedTokens));
+    const tokens = Object.values(trackedTokens);
+
+    res.status(200).send(tokens);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     logger.error({ err, pubkey }, `Failed to fetchTokens: ${message}`);
