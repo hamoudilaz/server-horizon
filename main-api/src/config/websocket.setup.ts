@@ -62,7 +62,7 @@ export function setupWebSocket(server: Server) {
   const startSubscriber = async () => {
     try {
       // Subscribe to the global channel
-      await pubSubClient.subscribe('ws-messages', (message) => {
+      await pubSubClient.subscribe('ws-messages', (message: string) => {
         try {
           const { pubKey, data } = JSON.parse(message);
 
@@ -83,7 +83,7 @@ export function setupWebSocket(server: Server) {
           logger.error({ err, message }, 'Failed to parse/relay Pub/Sub message');
         }
       });
-      await pubSubClient.subscribe('ws-demo-broadcast', (message) => {
+      await pubSubClient.subscribe('ws-demo-broadcast', (message: string) => {
         try {
           // This message is just the 'data' object, no pubKey
           const data = JSON.parse(message);

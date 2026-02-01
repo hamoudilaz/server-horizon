@@ -9,6 +9,7 @@ const createMockRedisClient = () => ({
   sRem: async () => 1,
   del: async () => 1,
   publish: async () => 1,
+  subscribe: async () => {},
   on: () => {},
   connect: async () => {},
   quit: async () => {},
