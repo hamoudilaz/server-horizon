@@ -3,10 +3,13 @@ name: Verify and Deploy
 on:
   push:
     branches: [main]
-
+  pull_request:
+    branches: ["**"]
+    
 jobs:
   verify:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -28,9 +31,27 @@ jobs:
       - name: Lint wallet-listener
         run: npm run lint -w wallet-listener
 
+      - name: Run all tests
+        env:
+          NODE_ENV: test
+        run: npm run test
+
+      - name: Run tests with coverage
+        env:
+          NODE_ENV: test
+        run: npm run test:coverage
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          directory: ./backend
+          flags: backend
+          fail_ci_if_error: false
+
   deploy:
     runs-on: ubuntu-latest
     needs: verify  # This ensures deploy only runs after verify succeeds
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - uses: actions/checkout@v4
