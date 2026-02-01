@@ -11,7 +11,8 @@ import { redisStore } from './config/redis.js';
 import { NODE_ENV, SESSION_SECRET, FRONTEND_URL_CORS, logger } from '@horizon/shared';
 import { httpLogger } from '@horizon/shared/logger.js';
 
-if (!SESSION_SECRET) {
+// Skip validation in test environment
+if (NODE_ENV !== 'test' && !SESSION_SECRET) {
   throw new Error('Missing SESSION_SECRET');
 }
 
@@ -58,7 +59,7 @@ app.use(
 app.use(
   session({
     name: 'sessionId',
-    secret: SESSION_SECRET,
+    secret: SESSION_SECRET || 'test-secret-fallback',
     saveUninitialized: false,
     cookie: COOKIE_OPTIONS,
     rolling: false,
