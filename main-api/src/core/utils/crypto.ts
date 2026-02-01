@@ -1,6 +1,6 @@
 import bs58 from 'bs58';
 import crypto from 'crypto';
-import { logger, ENCRYPTION_KEY } from '@horizon/shared';
+import { logger, ENCRYPTION_KEY, NODE_ENV } from '@horizon/shared';
 import { Keypair } from '@solana/web3.js';
 
 const ALGORITHM = 'aes-256-gcm';
@@ -8,12 +8,16 @@ const IV_LENGTH = 16;
 const AUTH_TAG_LENGTH = 16;
 const KEY_BYTE_LENGTH = 32;
 
-if (!ENCRYPTION_KEY || Buffer.from(ENCRYPTION_KEY, 'hex').length !== KEY_BYTE_LENGTH) {
-  logger.fatal('ENCRYPTION_KEY is not defined or is not a 32-byte hex string');
-  process.exit(1);
+// Skip validation in test environment
+if (NODE_ENV !== 'test') {
+  if (!ENCRYPTION_KEY || Buffer.from(ENCRYPTION_KEY, 'hex').length !== KEY_BYTE_LENGTH) {
+    logger.fatal('ENCRYPTION_KEY is not defined or is not a 32-byte hex string');
+    process.exit(1);
+  }
 }
 
-const key = Buffer.from(ENCRYPTION_KEY, 'hex');
+// Use a dummy key for tests, real key for production
+const key = NODE_ENV === 'test' ? Buffer.from('a'.repeat(64), 'hex') : Buffer.from(ENCRYPTION_KEY!, 'hex');
 
 /**
  * Encrypts plaintext using AES-256-GCM.
