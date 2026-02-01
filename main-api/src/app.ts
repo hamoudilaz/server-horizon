@@ -63,7 +63,7 @@ app.use(
     cookie: COOKIE_OPTIONS,
     rolling: false,
     resave: false,
-    store: redisStore,
+    store: NODE_ENV === 'test' ? undefined : redisStore, // Use memory store in tests
   })
 );
 

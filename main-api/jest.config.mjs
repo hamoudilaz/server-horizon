@@ -17,6 +17,9 @@ export default {
       {
         useESM: true,
         tsconfig: 'tsconfig.json',
+        diagnostics: {
+          ignoreCodes: [1378, 151002], // Ignore top-level await and hybrid module warnings
+        },
       },
     ],
   },

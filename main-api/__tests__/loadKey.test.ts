@@ -1,4 +1,4 @@
-import { testPrivKey, testPubKey } from './config/constant.js';
+import { testPrivKey, testPubKey } from './config/constant';
 import request from 'supertest';
 import { jest } from '@jest/globals';
 import app from '../src/app.js';
@@ -31,6 +31,12 @@ describe('POST /api/loadKey', () => {
       .post('/api/loadKey')
       .set('Content-Type', 'application/json')
       .send({ key: testPrivKey });
+
+    if (res.statusCode !== 200) {
+      console.log('Error response:', JSON.stringify(res.body, null, 2));
+      console.log('Status:', res.statusCode);
+      console.log('Details:', res.body.details);
+    }
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('pubKey', testPubKey);

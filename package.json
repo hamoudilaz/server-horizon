@@ -8,6 +8,11 @@
   ],
   "scripts": {
     "build": "npm run build -ws --if-present",
+    "test": "npm run test -ws --if-present",
+    "test:main-api": "npm run test -w main-api",
+    "test:listener": "npm run test -w wallet-listener",
+    "test:shared": "npm run test -w @horizon/shared",
+    "test:coverage": "npm run test:coverage -ws --if-present",
     "dev:main-api": "npm run build -w @horizon/shared && npm run dev -w main-api",
     "dev:listener": "npm run build -w @horizon/shared && npm run dev -w wallet-listener",
     "dev:redis": "docker start redis 2>&1 || docker run -d --name redis -p 6379:6379 redis:alpine",
