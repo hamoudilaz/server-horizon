@@ -44,7 +44,7 @@ async function connectRedis() {
 
 // Auto-connect unless in test mode
 if (NODE_ENV !== 'test') {
-  connectRedis();
+  void connectRedis();
 }
 
 // 4️⃣ Session Store
