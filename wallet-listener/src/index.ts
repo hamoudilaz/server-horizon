@@ -15,7 +15,7 @@ async function main() {
 
   pluginsLoader();
   setInterval(reconcileWallets, RECONCILE_INTERVAL_MS);
-
+  console.log('placeholder for CI test');
   logger.info(`Service started. Reconciling every ${RECONCILE_INTERVAL_MS}ms.`);
 }
 

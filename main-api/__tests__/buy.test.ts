@@ -1,6 +1,6 @@
 // main-api/__tests__/buy.test.ts
 
-import { testPrivKey, validBody } from './config/constant.js';
+import { testPrivKey, validBody } from './config/constant';
 import request from 'supertest';
 import { jest } from '@jest/globals';
 
@@ -35,7 +35,7 @@ describe('POST /buy', () => {
   it('should return 400 if mint is missing', async () => {
     // ... rest of file is correct
     const res = await request(app)
-      .post('/api/buy')
+      .post('/api/swap/buy')
       .set('Cookie', cookie)
       .send({ ...validBody, mint: 'invalidMint' });
 
@@ -46,7 +46,7 @@ describe('POST /buy', () => {
   // ... rest of the test file
   it('should return 400 if buyAmount is too low', async () => {
     const res = await request(app)
-      .post('/api/buy')
+      .post('/api/swap/buy')
       .set('Cookie', cookie)
       .send({ ...validBody, buyAmount: 0 });
 
@@ -56,7 +56,7 @@ describe('POST /buy', () => {
 
   it('should return 400 if buyAmount is too low', async () => {
     const res = await request(app)
-      .post('/api/buy')
+      .post('/api/swap/buy')
       .set('Cookie', cookie)
       .send({ ...validBody, buyAmount: null });
 
@@ -66,7 +66,7 @@ describe('POST /buy', () => {
 
   it('should return 400 if fee is too high', async () => {
     const res = await request(app)
-      .post('/api/buy')
+      .post('/api/swap/buy')
       .set('Cookie', cookie)
       .send({ ...validBody, fee: 0.5 });
 
@@ -76,7 +76,7 @@ describe('POST /buy', () => {
 
   it('should return 400 if fee type is not a number', async () => {
     const res = await request(app)
-      .post('/api/buy')
+      .post('/api/swap/buy')
       .set('Cookie', cookie)
       .send({ ...validBody, fee: 'not-a-number' });
 
@@ -86,7 +86,7 @@ describe('POST /buy', () => {
 
   it('should return 400 if jitoFee is not a number', async () => {
     const res = await request(app)
-      .post('/api/buy')
+      .post('/api/swap/buy')
       .set('Cookie', cookie)
       .send({ ...validBody, jitoFee: 'not-a-number' });
 

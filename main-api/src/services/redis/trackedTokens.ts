@@ -12,7 +12,7 @@ const SOL_PRICE_KEY = 'solPrice';
  * Initializes the token tracking for a user (on login).
  */
 export async function initTrackedTokens(pubKey: string): Promise<void> {
-  await redisClient.set(`${TOKEN_KEY_PREFIX}${pubKey}`, JSON.stringify({}));
+  await redisClient.set(`${TOKEN_KEY_PREFIX}${pubKey}`, JSON.stringify({}), { EX: 86400 }); // 1 day TTL
   await redisClient.sAdd(ACTIVE_WALLETS_KEY, pubKey);
 }
 

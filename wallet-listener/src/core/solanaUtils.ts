@@ -197,6 +197,7 @@ export async function publishToUser(pubKey: string, data: BroadcastMessage) {
   try {
     const message = JSON.stringify({ pubKey, data });
     await redisClient.publish(WS_MESSAGES_CHANNEL, message);
+    logger.info({ pubKey, data }, 'Broadcasted token update to user');
   } catch (err) {
     logger.error({ err, pubKey }, 'Failed to publish WebSocket message to Redis');
   }

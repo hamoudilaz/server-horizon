@@ -1,4 +1,4 @@
-import { testPrivKey, validSellBody } from './config/constant.js';
+import { testPrivKey, validSellBody } from './config/constant';
 import request from 'supertest';
 import { jest } from '@jest/globals';
 import app from '../src/app.js';
@@ -26,7 +26,7 @@ describe('POST /api/sell', () => {
 
   it('should return 400 if mint is not a string between 43-44 characters', async () => {
     const res = await request(app)
-      .post('/api/sell')
+      .post('/api/swap/sell')
       .set('Cookie', cookie)
       .send({ ...validSellBody, outputMint: 'invalidMint' });
 
@@ -36,7 +36,7 @@ describe('POST /api/sell', () => {
 
   it('should return 400 if fee is not a number', async () => {
     const res = await request(app)
-      .post('/api/sell')
+      .post('/api/swap/sell')
       .set('Cookie', cookie)
       .send({ ...validSellBody, fee: 'not-a-number' });
 
@@ -46,7 +46,7 @@ describe('POST /api/sell', () => {
 
   it('should return 400 if jitoFee is not a number', async () => {
     const res = await request(app)
-      .post('/api/sell')
+      .post('/api/swap/sell')
       .set('Cookie', cookie)
       .send({ ...validSellBody, jitoFee: 'not-a-number' });
 
@@ -56,7 +56,7 @@ describe('POST /api/sell', () => {
 
   it('should return 400 if amount is not a number', async () => {
     const res = await request(app)
-      .post('/api/sell')
+      .post('/api/swap/sell')
       .set('Cookie', cookie)
       .send({ ...validSellBody, amount: 'not-a-number' });
 
@@ -66,7 +66,7 @@ describe('POST /api/sell', () => {
 
   it('should return 400 if slippage is not a number', async () => {
     const res = await request(app)
-      .post('/api/sell')
+      .post('/api/swap/sell')
       .set('Cookie', cookie)
       .send({ ...validSellBody, slippage: 'not-a-number' });
 

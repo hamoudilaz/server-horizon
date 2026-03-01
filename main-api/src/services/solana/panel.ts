@@ -1,13 +1,17 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import dotenv from 'dotenv';
-import { logger } from '@horizon/shared/logger.js';
+import { logger, NODE_ENV } from '@horizon/shared';
 
 dotenv.config();
 
-const connection = new Connection(process.env.RPC_URL!, {
-  wsEndpoint: process.env.WSS_URL,
-  commitment: 'confirmed',
-});
+// Don't create real connection during tests
+const connection =
+  NODE_ENV === 'test'
+    ? ({} as Connection) // Mock placeholder for tests
+    : new Connection(process.env.RPC_URL!, {
+        wsEndpoint: process.env.WSS_URL,
+        commitment: 'confirmed',
+      });
 
 async function getBalance(outputMint: string, pubKey: string) {
   if (!pubKey) {
