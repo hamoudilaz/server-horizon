@@ -43,7 +43,7 @@ metadata:
   namespace: horizon-local
 data:
   config.yaml: |
-    tunnel: 4f594a67-54cb-4735-89a6-5bbb24a01837
+    tunnel: 4d0ca076-2028-4153-b198-8a804ef39d21
     credentials-file: /etc/cloudflared/creds/credentials.json
     
     ingress:
