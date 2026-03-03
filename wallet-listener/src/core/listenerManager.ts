@@ -86,7 +86,7 @@ async function addWallet(pubKey: string) {
   try {
     const pubKeyObj = new PublicKey(pubKey);
 
-    const subId = await connection.onLogs(pubKeyObj, (event) => onLogEventCallback(pubKey, event), 'confirmed');
+    const subId = connection.onLogs(pubKeyObj, (event) => onLogEventCallback(pubKey, event), 'confirmed');
 
     console.log(subId);
 

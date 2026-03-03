@@ -52,11 +52,21 @@ export async function getBalance(outputMint: string, pubKey: string) {
 export async function getTx(signature: string, pubKey: string) {
   try {
     if (!pubKey) return { error: 'Pubkey is not loaded' };
-    const tx = await connection.getTransaction(signature, {
+    let tx = await connection.getTransaction(signature, {
       commitment: 'confirmed',
       maxSupportedTransactionVersion: 0,
     });
-    if (!tx) return { error: 'No tx' };
+
+    if (!tx) {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      logger.info({ pubKey, signature }, 'Retrying getTransaction after delay');
+      tx = await connection.getTransaction(signature, {
+        commitment: 'confirmed',
+        maxSupportedTransactionVersion: 0,
+      });
+    }
+
+    if (!tx) return { error: 'No transaction found' };
 
     const decoded = await decodeTx(tx, pubKey);
     return decoded;
